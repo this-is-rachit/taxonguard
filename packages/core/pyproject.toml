@@ -1,0 +1,19 @@
+[project]
+name = "taxonguard-core"
+version = "0.1.0"
+description = "TaxonGuard detection engine: niche models and outlier scoring for GBIF occurrence records."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "scikit-learn>=1.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/taxonguard_core"]
