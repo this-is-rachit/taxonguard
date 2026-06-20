@@ -1,0 +1,38 @@
+# Runs the whole TaxonGuard stack with one command:
+#   docker compose -f infra/docker-compose.yml up --build
+# The web app is then at http://localhost:3000 and the API at http://localhost:8000.
+# No secret keys are required to run or review.
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      TAXONGUARD_CORS_ORIGINS: '["http://localhost:3000"]'
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8000"
+    depends_on:
+      api:
+        condition: service_healthy
