@@ -52,6 +52,17 @@ uv run pytest
 
 Full operating instructions live in `docs/operating-instructions.md`.
 
+## Quick start (web app)
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+Then open http://localhost:3000. Other scripts: `npm run build`,
+`npm run lint`, `npm run typecheck`, `npm run test`.
+
 ## License
 
 MIT. See `LICENSE`.
