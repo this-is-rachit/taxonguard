@@ -41,6 +41,10 @@ strict = true
 warn_unused_configs = true
 files = ["packages/core/src", "services/api/src"]
 
+[[tool.mypy.overrides]]
+module = ["rasterio.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["packages/core/tests", "services/api/tests"]
