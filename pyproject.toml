@@ -42,7 +42,7 @@ warn_unused_configs = true
 files = ["packages/core/src", "services/api/src"]
 
 [[tool.mypy.overrides]]
-module = ["rasterio.*", "shapely.*"]
+module = ["rasterio.*", "shapely.*", "sklearn.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
