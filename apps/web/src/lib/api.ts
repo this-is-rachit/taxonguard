@@ -26,6 +26,8 @@ export interface ClusterSummary {
   count: number;
   max_score: number;
   mean_score: number;
+  latitude: number;
+  longitude: number;
   reason_counts: Record<string, number>;
   explanation: string;
   decision: DecisionState | null;

@@ -18,12 +18,18 @@ vi.mock("@/lib/api", () => ({
   postDecision: vi.fn(),
 }));
 
+vi.mock("@/components/review/ClusterMap", () => ({
+  ClusterMap: () => <div data-testid="cluster-map" />,
+}));
+
 const SUMMARY: ClusterSummary = {
   cluster_id: "rana_temporaria:-4_0",
   taxon: "Rana temporaria",
   count: 2,
   max_score: 0.99,
   mean_score: 0.95,
+  latitude: 0,
+  longitude: 0,
   reason_counts: { realm_mismatch: 2, zero_coordinates: 1 },
   explanation: "This Rana temporaria record is flagged as suspicious.",
   decision: null,

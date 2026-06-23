@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Logo } from "@/components/Logo";
 import { ClusterListItem } from "@/components/review/ClusterListItem";
+import { ClusterMap } from "@/components/review/ClusterMap";
 import { Badge } from "@/components/ui/Badge";
 import { SuspicionMeter } from "@/components/ui/SuspicionMeter";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
@@ -48,7 +49,7 @@ function ClusterDetailPanel({ clusterId }: { clusterId: string }) {
       </div>
 
       <div className="mt-6 rounded-lg border border-dashed border-hairline p-md text-center text-sm text-muted">
-        The map and the confirm, reject, and refine actions arrive next.
+        The confirm, reject, and refine actions arrive next.
       </div>
     </div>
   );
@@ -57,6 +58,7 @@ function ClusterDetailPanel({ clusterId }: { clusterId: string }) {
 export default function ReviewPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: clusters, isLoading, isError, refetch } = useClusters();
+  const handleSelect = useCallback((id: string) => setSelectedId(id), []);
 
   return (
     <div className="min-h-screen bg-white text-ink">
@@ -77,9 +79,18 @@ export default function ReviewPage() {
           Review flagged clusters
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-          Each cluster groups nearby flagged records of one taxon. Pick one to
-          see its records and the draft rule it would write back to GBIF.
+          Each cluster groups nearby flagged records of one taxon. Pick one on
+          the map or in the list to see its records and the draft rule it would
+          write back to GBIF.
         </p>
+
+        <div className="mt-md">
+          <ClusterMap
+            clusters={clusters ?? []}
+            selectedId={selectedId}
+            onSelect={handleSelect}
+          />
+        </div>
 
         <div className="mt-md grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <section
@@ -99,7 +110,7 @@ export default function ReviewPage() {
                 key={cluster.cluster_id}
                 cluster={cluster}
                 selected={cluster.cluster_id === selectedId}
-                onSelect={() => setSelectedId(cluster.cluster_id)}
+                onSelect={() => handleSelect(cluster.cluster_id)}
               />
             ))}
           </section>

@@ -71,6 +71,8 @@ class ClusterService:
             count=cluster.count,
             max_score=round(cluster.max_score, 4),
             mean_score=round(cluster.mean_score, 4),
+            latitude=round(cluster.representative.latitude, 6),
+            longitude=round(cluster.representative.longitude, 6),
             reason_counts=cluster.reason_counts,
             explanation=self._explainer.explain(cluster.representative),
             decision=self._decisions.get(cluster.cluster_id),

@@ -40,6 +40,8 @@ class ClusterSummary(BaseModel):
     count: int
     max_score: float
     mean_score: float
+    latitude: float
+    longitude: float
     reason_counts: dict[str, int]
     explanation: str
     decision: DecisionState | None = None
