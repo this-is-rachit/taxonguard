@@ -2,7 +2,7 @@ import { Logo } from "@/components/Logo";
 
 const NAV = [
   { label: "Detect", href: "#" },
-  { label: "Review", href: "#" },
+  { label: "Review", href: "/review" },
   { label: "Clean my data", href: "#" },
   { label: "About", href: "#" },
 ];
@@ -51,7 +51,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
-              href="#"
+              href="/review"
               className="rounded-md bg-secondary px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
             >
               Open the review screen

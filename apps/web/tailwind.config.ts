@@ -25,6 +25,14 @@ const config: Config = {
         lg: "8px",
         xl: "12px",
       },
+      spacing: {
+        // Named spacing tokens from design/gbif_dark_atlas.md.
+        xs: "6px",
+        sm: "16px",
+        md: "24px",
+        lg: "40px",
+        xl: "64px",
+      },
       fontFamily: {
         sans: [
           "Helvetica Neue",
