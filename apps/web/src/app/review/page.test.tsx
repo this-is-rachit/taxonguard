@@ -5,8 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type ClusterDetail,
   type ClusterSummary,
+  type DecisionResponse,
   getCluster,
   getClusters,
+  postDecision,
 } from "@/lib/api";
 
 import ReviewPage from "./page";
@@ -70,6 +72,7 @@ describe("Review page", () => {
   beforeEach(() => {
     vi.mocked(getClusters).mockReset();
     vi.mocked(getCluster).mockReset();
+    vi.mocked(postDecision).mockReset();
   });
 
   it("lists clusters returned by the API", async () => {
@@ -84,7 +87,9 @@ describe("Review page", () => {
     vi.mocked(getCluster).mockResolvedValue(DETAIL);
     renderPage();
 
-    const item = await screen.findByRole("button", { pressed: false });
+    const item = await screen.findByRole("button", {
+      name: "Select Rana temporaria cluster",
+    });
     fireEvent.click(item);
 
     expect(await screen.findByText("Draft rule")).toBeInTheDocument();
@@ -103,5 +108,72 @@ describe("Review page", () => {
     await waitFor(() =>
       expect(screen.getByText("Could not reach the API")).toBeInTheDocument(),
     );
+  });
+
+  it("lists the records of a selected cluster", async () => {
+    vi.mocked(getClusters).mockResolvedValue([SUMMARY]);
+    vi.mocked(getCluster).mockResolvedValue(DETAIL);
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Select Rana temporaria cluster",
+      }),
+    );
+    expect(await screen.findByText("GBIF 1")).toBeInTheDocument();
+  });
+
+  it("posts a decision when Confirm is clicked", async () => {
+    vi.mocked(getClusters).mockResolvedValue([SUMMARY]);
+    vi.mocked(getCluster).mockResolvedValue(DETAIL);
+    const response: DecisionResponse = {
+      cluster_id: SUMMARY.cluster_id,
+      decision: {
+        action: "confirm",
+        value: "suspicious",
+        note: null,
+        written_to_gbif: false,
+      },
+      status: "recorded",
+    };
+    vi.mocked(postDecision).mockResolvedValue(response);
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Select Rana temporaria cluster",
+      }),
+    );
+    const confirm = await screen.findByRole("button", { name: "Confirm" });
+    fireEvent.click(confirm);
+
+    await waitFor(() =>
+      expect(postDecision).toHaveBeenCalledWith(SUMMARY.cluster_id, {
+        action: "confirm",
+        note: null,
+      }),
+    );
+  });
+
+  it("shows a recorded decision on the cluster", async () => {
+    vi.mocked(getClusters).mockResolvedValue([SUMMARY]);
+    vi.mocked(getCluster).mockResolvedValue({
+      ...DETAIL,
+      decision: {
+        action: "confirm",
+        value: "suspicious",
+        note: null,
+        written_to_gbif: false,
+      },
+    });
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Select Rana temporaria cluster",
+      }),
+    );
+    expect(await screen.findByText(/Recorded:/)).toBeInTheDocument();
+    expect(screen.getByText(/Not yet written to/)).toBeInTheDocument();
   });
 });

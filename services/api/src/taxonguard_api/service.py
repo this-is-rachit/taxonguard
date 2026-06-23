@@ -112,7 +112,7 @@ class ClusterService:
                 confidence=round(evidence.confidence, 4),
                 reasons=list(evidence.reasons),
             )
-            for evidence in [cluster.representative]
+            for evidence in cluster.records[:200]
         ]
         rule = RuleOut(
             taxon=cluster.rule.taxon,

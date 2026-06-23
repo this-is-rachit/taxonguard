@@ -23,6 +23,7 @@ export function ClusterListItem({
         type="button"
         onClick={onSelect}
         aria-pressed={selected}
+        aria-label={`Select ${cluster.taxon} cluster`}
         className="block w-full text-left focus-visible:outline-none"
       >
         <div className="flex items-start justify-between gap-2">

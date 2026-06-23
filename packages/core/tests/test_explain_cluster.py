@@ -33,6 +33,7 @@ def test_flagged_errors_form_a_cluster() -> None:
     assert biggest.count >= 2
     assert biggest.taxon == "Test fox"
     assert "realm_mismatch" in biggest.reason_counts
+    assert len(biggest.records) == biggest.count
 
 
 def test_cluster_has_rule_and_representative() -> None:

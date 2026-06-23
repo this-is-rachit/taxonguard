@@ -41,6 +41,7 @@ class Cluster:
     mean_score: float
     reason_counts: dict[str, int]
     representative: RecordEvidence
+    records: tuple[RecordEvidence, ...]
     rule: AnnotationRule
 
 
@@ -87,19 +88,16 @@ def cluster_records(
 
     clusters: list[Cluster] = []
     for cell, group in flagged.groupby("_cluster_cell", sort=True):
-        score_values = group[SUSPICION_SCORE_COLUMN].to_numpy(dtype="float64")
-        top_row = group.iloc[int(np.argmax(score_values))]
-        representative = evidence_for_row(top_row, taxon=taxon, expected_realm=expected_realm)
+        members = [
+            evidence_for_row(row, taxon=taxon, expected_realm=expected_realm)
+            for _, row in group.iterrows()
+        ]
+        members.sort(key=lambda evidence: evidence.suspicion_score, reverse=True)
+        representative = members[0]
 
-        record_ids = tuple(int(value) for value in group["gbif_id"].tolist() if not pd.isna(value))
-        points = tuple(
-            (float(la), float(lo))
-            for la, lo in zip(
-                group["decimal_latitude"].tolist(),
-                group["decimal_longitude"].tolist(),
-                strict=True,
-            )
-        )
+        record_ids = tuple(member.gbif_id for member in members if member.gbif_id is not None)
+        points = tuple((member.latitude, member.longitude) for member in members)
+        scores = [member.suspicion_score for member in members]
         rule = build_rule(taxon, list(points))
 
         clusters.append(
@@ -108,11 +106,12 @@ def cluster_records(
                 taxon=taxon,
                 record_ids=record_ids,
                 points=points,
-                count=len(group),
-                max_score=float(score_values.max()),
-                mean_score=float(score_values.mean()),
+                count=len(members),
+                max_score=max(scores),
+                mean_score=sum(scores) / len(scores),
                 reason_counts=_reason_counts(group[SUSPICION_REASONS_COLUMN]),
                 representative=representative,
+                records=tuple(members),
                 rule=rule,
             )
         )

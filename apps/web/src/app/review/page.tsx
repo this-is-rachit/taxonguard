@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { Logo } from "@/components/Logo";
+import { ClusterActions } from "@/components/review/ClusterActions";
 import { ClusterListItem } from "@/components/review/ClusterListItem";
 import { ClusterMap } from "@/components/review/ClusterMap";
 import { Badge } from "@/components/ui/Badge";
@@ -48,9 +49,33 @@ function ClusterDetailPanel({ clusterId }: { clusterId: string }) {
         </p>
       </div>
 
-      <div className="mt-6 rounded-lg border border-dashed border-hairline p-md text-center text-sm text-muted">
-        The confirm, reject, and refine actions arrive next.
+      <div className="mt-6">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted">
+          Records
+        </p>
+        <ul role="list" className="mt-2 flex flex-col gap-2">
+          {data.records.map((record, index) => (
+            <li
+              key={record.gbif_id ?? index}
+              className="flex items-center justify-between gap-3 rounded-md border border-hairline p-2"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-ink">
+                  {record.gbif_id ? `GBIF ${record.gbif_id}` : "Record"}
+                </p>
+                <p className="truncate text-xs text-muted">
+                  {record.latitude.toFixed(3)}, {record.longitude.toFixed(3)}
+                  {" — "}
+                  {record.reasons.map(reasonLabel).join(", ")}
+                </p>
+              </div>
+              <SuspicionMeter score={record.suspicion_score} />
+            </li>
+          ))}
+        </ul>
       </div>
+
+      <ClusterActions clusterId={data.cluster_id} decision={data.decision} />
     </div>
   );
 }
