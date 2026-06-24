@@ -27,5 +27,14 @@ class Settings(BaseSettings):
     gbif_username: str | None = None
     gbif_password: str | None = None
 
+    @property
+    def annotation_enabled(self) -> bool:
+        """True only when both GBIF credentials are set, so write-back is possible.
+
+        When this is False the API still runs in full; confirmed rules are recorded
+        and a manual copy-and-paste fallback is offered instead of being written.
+        """
+        return bool(self.gbif_username and self.gbif_password)
+
 
 settings = Settings()

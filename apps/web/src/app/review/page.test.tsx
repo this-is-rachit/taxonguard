@@ -176,4 +176,34 @@ describe("Review page", () => {
     expect(await screen.findByText(/Recorded:/)).toBeInTheDocument();
     expect(screen.getByText(/Not yet written to/)).toBeInTheDocument();
   });
+
+  it("links to the annotation when a decision is written to GBIF", async () => {
+    vi.mocked(getClusters).mockResolvedValue([SUMMARY]);
+    vi.mocked(getCluster).mockResolvedValue({
+      ...DETAIL,
+      decision: {
+        action: "confirm",
+        value: "suspicious",
+        note: null,
+        written_to_gbif: true,
+        annotation_id: 99,
+        annotation_url:
+          "https://labs.gbif.org/occurrence/experimental/annotation/rule/99",
+        manual_instructions: null,
+      },
+    });
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Select Rana temporaria cluster",
+      }),
+    );
+    expect(await screen.findByText(/Written to GBIF/)).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "View the annotation" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://labs.gbif.org/occurrence/experimental/annotation/rule/99",
+    );
+  });
 });

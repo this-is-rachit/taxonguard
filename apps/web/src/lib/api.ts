@@ -18,6 +18,9 @@ export interface DecisionState {
   value: string | null;
   note: string | null;
   written_to_gbif: boolean;
+  annotation_id?: number | null;
+  annotation_url?: string | null;
+  manual_instructions?: string | null;
 }
 
 export interface ClusterSummary {

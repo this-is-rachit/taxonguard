@@ -66,6 +66,11 @@ class DecisionState(BaseModel):
     value: str | None = None
     note: str | None = None
     written_to_gbif: bool = False
+    # Set when a confirmed rule is written to GBIF's annotation system.
+    annotation_id: int | None = None
+    annotation_url: str | None = None
+    # Set when write-back is not enabled, so a reviewer can create the rule by hand.
+    manual_instructions: str | None = None
 
 
 class DecisionResponse(BaseModel):

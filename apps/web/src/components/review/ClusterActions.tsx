@@ -68,12 +68,46 @@ export function ClusterActions({
           </span>
         ) : null}
         {decision ? (
-          <span className="text-muted">
-            Recorded:{" "}
-            <span className="font-bold text-ink">{decision.action}</span>
-            {decision.value ? ` (${decision.value})` : ""}. Not yet written to
-            GBIF.
-          </span>
+          decision.written_to_gbif ? (
+            <span className="text-muted">
+              Recorded:{" "}
+              <span className="font-bold text-ink">{decision.action}</span>
+              {decision.value ? ` (${decision.value})` : ""}. Written to GBIF
+              {decision.annotation_url ? (
+                <>
+                  {" "}
+                  <a
+                    href={decision.annotation_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-bold text-primary hover:underline"
+                  >
+                    View the annotation
+                  </a>
+                </>
+              ) : null}
+              .
+            </span>
+          ) : (
+            <div className="text-muted">
+              <span>
+                Recorded:{" "}
+                <span className="font-bold text-ink">{decision.action}</span>
+                {decision.value ? ` (${decision.value})` : ""}. Not yet written
+                to GBIF.
+              </span>
+              {decision.manual_instructions ? (
+                <details className="mt-2">
+                  <summary className="cursor-pointer font-bold text-ink">
+                    Create this rule manually
+                  </summary>
+                  <pre className="mt-2 whitespace-pre-wrap break-all rounded-md border border-hairline bg-panel p-2 font-mono text-xs text-ink">
+                    {decision.manual_instructions}
+                  </pre>
+                </details>
+              ) : null}
+            </div>
+          )
         ) : null}
       </div>
     </div>

@@ -8,12 +8,13 @@ from fastapi.testclient import TestClient
 from taxonguard_api.main import app
 from taxonguard_api.routes import get_service
 from taxonguard_api.service import ClusterService
+from taxonguard_core.annotate.client import AnnotationError, AnnotationResult
 from taxonguard_core.engine.fusion import score_occurrences
 
 TAXON = "Test fox"
 
 
-def _seeded_service() -> ClusterService:
+def _seeded_frames() -> dict[str, pd.DataFrame]:
     rng = np.random.default_rng(0)
     n = 70
     frame = pd.DataFrame(
@@ -28,7 +29,15 @@ def _seeded_service() -> ClusterService:
         }
     )
     scored = score_occurrences(frame, expected_realm="terrestrial", variables=(1, 2))
-    return ClusterService({TAXON: scored}, realms={TAXON: "terrestrial"})
+    return {TAXON: scored}
+
+
+def _seeded_service(annotation_client: object | None = None) -> ClusterService:
+    return ClusterService(
+        _seeded_frames(),
+        realms={TAXON: "terrestrial"},
+        annotation_client=annotation_client,  # type: ignore[arg-type]
+    )
 
 
 @pytest.fixture
@@ -113,3 +122,92 @@ def test_invalid_action_rejected_by_validation(client: TestClient) -> None:
 def test_decision_on_unknown_cluster_returns_404(client: TestClient) -> None:
     response = client.post("/clusters/nope/decision", json={"action": "confirm"})
     assert response.status_code == 404
+
+
+def _client_for(service: ClusterService) -> TestClient:
+    app.dependency_overrides[get_service] = lambda: service
+    return TestClient(app)
+
+
+class _FakeAnnotationClient:
+    """An annotation client that records the rule and returns a written result."""
+
+    def __init__(self) -> None:
+        self.submitted: list[object] = []
+
+    def submit(self, rule: object) -> AnnotationResult:
+        self.submitted.append(rule)
+        return AnnotationResult(
+            submitted=True,
+            rule_id=99,
+            rule_url="https://labs.gbif.org/occurrence/experimental/annotation/rule/99",
+            ui_url="https://labs.gbif.org/annotations/",
+            manual=False,
+        )
+
+
+class _FailingAnnotationClient:
+    """An annotation client that always fails, to exercise the manual fallback."""
+
+    def submit(self, rule: object) -> AnnotationResult:
+        raise AnnotationError("network down")
+
+
+def test_confirm_writes_back_when_annotation_client_succeeds() -> None:
+    fake = _FakeAnnotationClient()
+    test_client = _client_for(_seeded_service(annotation_client=fake))
+    try:
+        cluster_id = test_client.get("/clusters").json()[0]["cluster_id"]
+        body = test_client.post(
+            f"/clusters/{cluster_id}/decision", json={"action": "confirm"}
+        ).json()
+        assert body["decision"]["written_to_gbif"] is True
+        assert body["decision"]["annotation_id"] == 99
+        assert body["decision"]["annotation_url"].endswith("/rule/99")
+        assert len(fake.submitted) == 1
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_confirm_offers_manual_fallback_without_credentials() -> None:
+    # The default service uses the no-credentials NullAnnotationClient.
+    test_client = _client_for(_seeded_service())
+    try:
+        cluster_id = test_client.get("/clusters").json()[0]["cluster_id"]
+        body = test_client.post(
+            f"/clusters/{cluster_id}/decision", json={"action": "confirm"}
+        ).json()
+        assert body["decision"]["written_to_gbif"] is False
+        instructions = body["decision"]["manual_instructions"]
+        assert instructions is not None
+        assert "labs.gbif.org" in instructions
+        assert TAXON in instructions
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_confirm_degrades_to_manual_when_write_back_errors() -> None:
+    test_client = _client_for(_seeded_service(annotation_client=_FailingAnnotationClient()))
+    try:
+        cluster_id = test_client.get("/clusters").json()[0]["cluster_id"]
+        body = test_client.post(
+            f"/clusters/{cluster_id}/decision", json={"action": "confirm"}
+        ).json()
+        assert body["decision"]["written_to_gbif"] is False
+        assert body["decision"]["manual_instructions"] is not None
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_reject_does_not_write_back() -> None:
+    fake = _FakeAnnotationClient()
+    test_client = _client_for(_seeded_service(annotation_client=fake))
+    try:
+        cluster_id = test_client.get("/clusters").json()[0]["cluster_id"]
+        body = test_client.post(
+            f"/clusters/{cluster_id}/decision", json={"action": "reject"}
+        ).json()
+        assert body["decision"]["written_to_gbif"] is False
+        assert fake.submitted == []  # reject never calls the annotation client
+    finally:
+        app.dependency_overrides.clear()

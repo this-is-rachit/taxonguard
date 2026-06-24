@@ -68,3 +68,25 @@ Web (from `apps/web`): `npm run lint`, `npm run format:check`,
 Settings are read from environment variables with the prefix `TAXONGUARD_`.
 Copy `.env.example` to `.env` to override defaults. All variables are optional
 for local development.
+
+## Writing confirmed rules back to GBIF (optional)
+
+Confirming a cluster on the review screen publishes its rule to GBIF's
+experimental occurrence-annotation system at
+`https://labs.gbif.org/occurrence/experimental/annotation`. This is the only
+feature that needs an account, and it is entirely optional.
+
+To enable it, create a free account at https://www.gbif.org/ and put the
+credentials in `.env` (which is git-ignored and must never be committed):
+
+```bash
+TAXONGUARD_GBIF_USERNAME=your_gbif_username
+TAXONGUARD_GBIF_PASSWORD=your_gbif_password
+```
+
+With both set, confirming a cluster posts the rule (the taxon, the WKT polygon,
+and the value `suspicious`) over HTTP Basic Auth and the review screen links to
+the written annotation. With either missing, the tool still runs in full: the
+decision is recorded and the screen shows the exact WKT, value, and taxon to
+create the rule by hand at https://labs.gbif.org/annotations/. No keys are ever
+required to run or review the rest of the tool.

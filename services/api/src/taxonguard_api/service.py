@@ -13,6 +13,13 @@ from collections.abc import Mapping
 
 import pandas as pd
 
+from taxonguard_core.annotate.client import (
+    AnnotationClient,
+    AnnotationError,
+    AnnotationResult,
+    NullAnnotationClient,
+    manual_instructions,
+)
 from taxonguard_core.explain.cluster import Cluster, cluster_records
 from taxonguard_core.explain.explainer import Explainer, TemplateExplainer
 from taxonguard_core.explain.rule import ALLOWED_VALUES, SUSPICIOUS
@@ -46,9 +53,11 @@ class ClusterService:
         *,
         realms: Mapping[str, str] | None = None,
         explainer: Explainer | None = None,
+        annotation_client: AnnotationClient | None = None,
         min_score: float = 0.5,
     ) -> None:
         self._explainer = explainer or TemplateExplainer()
+        self._annotation_client: AnnotationClient = annotation_client or NullAnnotationClient()
         self._clusters: dict[str, Cluster] = {}
         self._order: list[str] = []
         self._decisions: dict[str, DecisionState] = {}
@@ -122,8 +131,26 @@ class ClusterService:
         )
         return ClusterDetail(**summary.model_dump(), records=records, rule=rule)
 
+    def _write_back(self, cluster: Cluster) -> AnnotationResult:
+        """Submit a confirmed cluster's rule to GBIF, degrading to a manual result.
+
+        A configured GBIF client posts the rule; the no-credentials default returns
+        a manual fallback. If a write-back attempt errors, the failure is turned
+        into a manual fallback as well, so a decision is always recorded.
+        """
+        try:
+            return self._annotation_client.submit(cluster.rule)
+        except AnnotationError as error:
+            return AnnotationResult(
+                submitted=False,
+                manual=True,
+                manual_instructions=manual_instructions(cluster.rule),
+                detail=f"Write-back to GBIF failed: {error}",
+            )
+
     def decide(self, cluster_id: str, request: DecisionRequest) -> DecisionResponse:
-        if cluster_id not in self._clusters:
+        cluster = self._clusters.get(cluster_id)
+        if cluster is None:
             raise ClusterNotFoundError(cluster_id)
 
         value = request.value or SUSPICIOUS
@@ -132,11 +159,26 @@ class ClusterService:
                 f"value must be one of {sorted(ALLOWED_VALUES)} for a refined rule"
             )
 
+        written_to_gbif = False
+        annotation_id: int | None = None
+        annotation_url: str | None = None
+        manual: str | None = None
+        if request.action == "confirm":
+            result = self._write_back(cluster)
+            written_to_gbif = result.submitted
+            annotation_id = result.rule_id
+            if result.submitted:
+                annotation_url = result.rule_url or result.ui_url
+            manual = result.manual_instructions
+
         state = DecisionState(
             action=request.action,
             value=value if request.action != "reject" else None,
             note=request.note,
-            written_to_gbif=False,
+            written_to_gbif=written_to_gbif,
+            annotation_id=annotation_id,
+            annotation_url=annotation_url,
+            manual_instructions=manual,
         )
         self._decisions[cluster_id] = state
         return DecisionResponse(cluster_id=cluster_id, decision=state)
@@ -147,12 +189,17 @@ def build_default_service() -> ClusterService:
 
     Loads each default taxon's cached dataset, scores it, and clusters the
     result. Taxa without a cache, or that fail to load or score, are skipped, so
-    the API always starts even with no data on disk.
+    the API always starts even with no data on disk. The annotation client is
+    chosen from settings: a real GBIF client when credentials are present, and the
+    manual-fallback client otherwise, so the API runs at no cost with no keys.
     """
+    from taxonguard_core.annotate.client import GbifAnnotationClient
     from taxonguard_core.data.cache import load_cached
     from taxonguard_core.engine.fusion import score_occurrences
     from taxonguard_core.explain.cluster import DEFAULT_MIN_SCORE
     from taxonguard_core.taxa import DEFAULT_TAXA
+
+    from .config import settings
 
     frames: dict[str, pd.DataFrame] = {}
     realms: dict[str, str] = {}
@@ -166,4 +213,17 @@ def build_default_service() -> ClusterService:
         except Exception:
             continue
 
-    return ClusterService(frames, realms=realms, min_score=DEFAULT_MIN_SCORE)
+    annotation_client: AnnotationClient
+    username = settings.gbif_username
+    password = settings.gbif_password
+    if username and password:
+        annotation_client = GbifAnnotationClient(username=username, password=password)
+    else:
+        annotation_client = NullAnnotationClient()
+
+    return ClusterService(
+        frames,
+        realms=realms,
+        annotation_client=annotation_client,
+        min_score=DEFAULT_MIN_SCORE,
+    )
