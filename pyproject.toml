@@ -47,6 +47,12 @@ python_version = "3.11"
 strict = true
 warn_unused_configs = true
 files = ["packages/core/src", "services/api/src"]
+# Resolve first-party imports to the source under these roots, so type checking
+# uses the checked source instead of an installed copy of the package. Without
+# this, in environments where the workspace packages are installed (CI), mypy can
+# resolve `taxonguard_core.*` to the installed distribution and miss modules.
+mypy_path = ["packages/core/src", "services/api/src"]
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = ["rasterio.*", "shapely.*", "sklearn.*"]

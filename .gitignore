@@ -29,8 +29,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Data (large environmental layers and downloads are kept out of Git)
-data/
+# Data (large environmental layers and downloads are kept out of Git). Anchored
+# to the repository root so it does not also match the source package
+# packages/core/src/taxonguard_core/data/.
+/data/
 *.tif
 *.tiff
 *.zip
