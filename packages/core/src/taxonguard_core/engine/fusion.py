@@ -14,9 +14,13 @@ poorly recorded setting contributes little. The deterministic flags keep full
 strength, because a record on null island or a land animal in the open ocean is
 implausible regardless of how much data exists.
 
-The default weights below are reasonable starting values. They are calibrated
-against a labeled evaluation set in Phase 7; until then the score ranks records
-sensibly but should not be read as a calibrated probability.
+The default weights below were calibrated against a labeled evaluation benchmark
+(see :mod:`taxonguard_core.eval` and docs/evaluation.md). Calibration raised the
+environmental weight from a starting 0.8 to 0.93, which recovers borderline
+climate outliers at the operating threshold without adding false alarms; the
+deterministic weights were already at the benchmark optimum. The benchmark is
+synthetic, so the weights should be re-derived with the same harness once a
+labeled set from real GBIF records is available.
 
 Score a cached taxon and print its most suspicious records:
 
@@ -70,10 +74,12 @@ class FusionWeights:
     """Per-signal probabilities used by the noisy-OR fusion.
 
     Each value is the probability of suspicion that the signal contributes at
-    full strength. Defaults are starting values, calibrated in Phase 7.
+    full strength. The defaults were calibrated against the labeled benchmark in
+    :mod:`taxonguard_core.eval` (see docs/evaluation.md); the environmental
+    weight is the one calibration moved (from 0.8 to 0.93).
     """
 
-    environmental: float = 0.8
+    environmental: float = 0.93
     realm_mismatch: float = 0.9
     zero_coordinates: float = 0.9
     equal_coordinates: float = 0.5

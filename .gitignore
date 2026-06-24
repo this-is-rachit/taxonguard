@@ -39,6 +39,11 @@ yarn-error.log*
 *.gpkg
 *.parquet
 
+# Generated evaluation results: the runner rewrites this on every run. The
+# committed deliverables are the figure (docs/evaluation.png) and the writeup
+# (docs/evaluation.md).
+/docs/evaluation_results.json
+
 # OS / editor
 .DS_Store
 Thumbs.db
