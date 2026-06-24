@@ -35,6 +35,13 @@ src = ["packages/core/src", "services/api/src"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.isort]
+# Declare the workspace packages explicitly so import sorting is identical in
+# every environment. Without this, ruff auto-detects first-party packages, and
+# that detection differs between a local checkout and CI (where the packages are
+# installed editable), which can flag I001 in CI on imports that pass locally.
+known-first-party = ["taxonguard_core", "taxonguard_api"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
