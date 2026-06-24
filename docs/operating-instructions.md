@@ -73,7 +73,7 @@ for local development.
 
 Confirming a cluster on the review screen publishes its rule to GBIF's
 experimental occurrence-annotation system at
-`https://labs.gbif.org/occurrence/experimental/annotation`. This is the only
+`https://api.gbif.org/v1/occurrence/experimental/annotation`. This is the only
 feature that needs an account, and it is entirely optional.
 
 To enable it, create a free account at https://www.gbif.org/ and put the

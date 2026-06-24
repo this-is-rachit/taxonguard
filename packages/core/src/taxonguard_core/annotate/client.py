@@ -6,9 +6,9 @@ a taxon inside a geographic polygon carry a controlled-vocabulary value"; GBIF
 stores it as a WKT geometry plus a backbone ``taxonKey`` and an ``annotation``
 term. The verified contract (from github.com/gbif/occurrence-annotation):
 
-- Base URL ``https://labs.gbif.org/occurrence/experimental/annotation`` (this is
-  the experimental annotation service, which is a different host from the main
-  ``api.gbif.org/v1`` API).
+- Base URL ``https://api.gbif.org/v1/occurrence/experimental/annotation``. The
+  annotation service is served behind GBIF's main API gateway; the
+  ``labs.gbif.org`` host serves only the human-facing annotation UI, not the API.
 - ``POST /rule`` with HTTP Basic Auth (any GBIF account).
 - JSON body: ``geometry`` (WKT, required), ``taxonKey`` (a single GBIF backbone
   key), ``annotation`` (a vocabulary term; the server upper-cases it). The
@@ -33,8 +33,11 @@ import httpx
 from ..data.gbif import DEFAULT_TIMEOUT, match_taxon_key
 from ..explain.rule import AnnotationRule
 
-# The experimental occurrence-annotation service. Not api.gbif.org/v1.
-ANNOTATION_API_BASE = "https://labs.gbif.org/occurrence/experimental/annotation"
+# The experimental occurrence-annotation service, served behind GBIF's main API
+# gateway. The Spring controller path is /occurrence/experimental/annotation, and
+# in production it sits under api.gbif.org/v1 (the labs.gbif.org host serves only
+# the annotation UI, not the API).
+ANNOTATION_API_BASE = "https://api.gbif.org/v1/occurrence/experimental/annotation"
 
 # The human-facing annotation UI, where a manual rule is created or a written
 # rule can be reviewed.
