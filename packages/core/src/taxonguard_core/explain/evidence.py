@@ -72,23 +72,3 @@ def evidence_for_row(
         on_land=bool(on_land) if _present(on_land) else None,
         environmental_normalized=float(normalized) if _present(normalized) else None,
     )
-
-
-def evidence_from_frame(
-    frame: pd.DataFrame,
-    *,
-    taxon: str,
-    expected_realm: str | None = None,
-    min_score: float = 0.0,
-) -> list[RecordEvidence]:
-    """Build evidence objects for the flagged rows of a scored frame.
-
-    Rows with a suspicion score at or above min_score are returned, most
-    suspicious first.
-    """
-    flagged = frame[frame[SUSPICION_SCORE_COLUMN] >= min_score]
-    flagged = flagged.sort_values(SUSPICION_SCORE_COLUMN, ascending=False)
-    return [
-        evidence_for_row(row, taxon=taxon, expected_realm=expected_realm)
-        for _, row in flagged.iterrows()
-    ]

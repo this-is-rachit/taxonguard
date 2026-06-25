@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed CORS origins for the web app.
     cors_origins: list[str] = Field(default=["http://localhost:3000"])
 
-    # GBIF credentials for annotation write-back. Optional until Phase 6.
+    # GBIF credentials for annotation write-back. Optional.
     gbif_username: str | None = None
     gbif_password: str | None = None
 

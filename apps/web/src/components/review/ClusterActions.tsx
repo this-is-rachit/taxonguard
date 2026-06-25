@@ -7,8 +7,9 @@ import { useDecision } from "@/lib/queries";
 import { Button } from "@/components/ui/Button";
 
 // Confirm, reject, or refine a cluster's draft rule. The decision is recorded by
-// the API; the write-back to GBIF is added in Phase 6, so the status makes the
-// "recorded, not yet written" state explicit.
+// the API, which writes a confirmed rule back to GBIF when credentials are set;
+// the status makes the "written to GBIF" or "recorded, not yet written" state
+// explicit.
 export function ClusterActions({
   clusterId,
   decision,

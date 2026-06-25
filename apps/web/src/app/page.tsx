@@ -88,8 +88,9 @@ export default function Home() {
             ))}
           </div>
           <p className="mt-8 text-sm text-muted">
-            The live review screen is built in Phase 5. This page confirms the
-            web app scaffold, the light theme, and the brand palette.
+            The review screen lists flagged clusters on a map, shows the evidence
+            and a draft rule for each, and writes a confirmed rule back to GBIF.
+            Open it from the navigation or the button above.
           </p>
         </section>
       </main>

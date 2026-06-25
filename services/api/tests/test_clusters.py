@@ -140,7 +140,7 @@ class _FakeAnnotationClient:
         return AnnotationResult(
             submitted=True,
             rule_id=99,
-            rule_url="https://labs.gbif.org/occurrence/experimental/annotation/rule/99",
+            rule_url="https://api.gbif.org/v1/occurrence/experimental/annotation/rule/99",
             ui_url="https://labs.gbif.org/annotations/",
             manual=False,
         )

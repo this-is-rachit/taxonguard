@@ -4,7 +4,7 @@ A rule says, in GBIF's annotation form, that records of a taxon inside a geograp
 polygon carry a controlled-vocabulary value. The polygon is the convex hull of the
 flagged points, written as WKT; one or two points are buffered to a small valid
 polygon. The default value is "suspicious", which is GBIF's default annotation
-value. A confirmed rule is what gets written back to GBIF in Phase 6.
+value. A confirmed rule is what gets written back to GBIF's annotation system.
 """
 
 from __future__ import annotations

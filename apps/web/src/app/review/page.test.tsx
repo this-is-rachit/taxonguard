@@ -188,7 +188,7 @@ describe("Review page", () => {
         written_to_gbif: true,
         annotation_id: 99,
         annotation_url:
-          "https://labs.gbif.org/occurrence/experimental/annotation/rule/99",
+          "https://api.gbif.org/v1/occurrence/experimental/annotation/rule/99",
         manual_instructions: null,
       },
     });
@@ -203,7 +203,7 @@ describe("Review page", () => {
     const link = screen.getByRole("link", { name: "View the annotation" });
     expect(link).toHaveAttribute(
       "href",
-      "https://labs.gbif.org/occurrence/experimental/annotation/rule/99",
+      "https://api.gbif.org/v1/occurrence/experimental/annotation/rule/99",
     );
   });
 });

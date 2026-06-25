@@ -104,15 +104,3 @@ def labels_are_suspicious(frame: pd.DataFrame) -> np.ndarray:
 def suspicion_scores(frame: pd.DataFrame) -> np.ndarray:
     """The fused suspicion score column as a float array."""
     return frame[SUSPICION_SCORE_COLUMN].to_numpy(dtype="float64")
-
-
-def score_benchmark(
-    cases: Sequence[BenchmarkCase],
-    weights: FusionWeights | None = None,
-    *,
-    variables: tuple[int, ...] = BENCHMARK_VARIABLES,
-    random_state: int = DEFAULT_RANDOM_STATE,
-) -> pd.DataFrame:
-    """Prepare and fuse the whole benchmark in one call (the convenient path)."""
-    prepared = prepare_benchmark(cases, variables=variables, random_state=random_state)
-    return fuse_prepared(prepared, weights)

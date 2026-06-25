@@ -3,8 +3,9 @@
 The service holds already-scored frames per taxon, builds clusters from them, and
 keeps an in-memory record of expert decisions. It is deliberately decoupled from
 how the frames are produced: the production builder loads cached taxon datasets
-and scores them, while tests inject seeded synthetic frames. Writing a confirmed
-rule back to GBIF is added in Phase 6; here a decision is validated and recorded.
+and scores them, while tests inject seeded synthetic frames. Confirming a cluster
+validates and records the decision and writes the confirmed rule back to GBIF
+through the annotation adapter, degrading to a manual fallback with no credentials.
 """
 
 from __future__ import annotations

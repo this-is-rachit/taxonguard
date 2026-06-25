@@ -18,7 +18,7 @@ from dataclasses import dataclass, replace
 import numpy as np
 
 from ..engine.fusion import FusionWeights
-from .metrics import average_precision, best_f1, metrics_at
+from .metrics import average_precision, metrics_at
 from .scoring import PreparedCase, fuse_prepared, labels_are_suspicious, suspicion_scores
 
 # The weight fields tuned by the search, in fusion order.
@@ -55,10 +55,6 @@ class CalibrationResult:
 
 def average_precision_objective(scores: np.ndarray, is_bad: np.ndarray) -> float:
     return average_precision(scores, is_bad)
-
-
-def best_f1_objective(scores: np.ndarray, is_bad: np.ndarray) -> float:
-    return best_f1(scores, is_bad).f1
 
 
 def f1_at_threshold_objective(threshold: float) -> Objective:
