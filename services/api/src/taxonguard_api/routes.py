@@ -11,9 +11,11 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
+from .clean_service import CleanNotFoundError, CleanService, UploadError
 from .models import (
+    CleanReport,
     ClusterDetail,
     ClusterSummary,
     DecisionRequest,
@@ -34,7 +36,14 @@ def get_service() -> ClusterService:
     return build_default_service()
 
 
+@lru_cache(maxsize=1)
+def get_clean_service() -> CleanService:
+    """Return the process-wide clean service (holds uploaded results in memory)."""
+    return CleanService()
+
+
 ServiceDep = Annotated[ClusterService, Depends(get_service)]
+CleanServiceDep = Annotated[CleanService, Depends(get_clean_service)]
 
 router = APIRouter()
 
@@ -65,3 +74,36 @@ def decide(cluster_id: str, request: DecisionRequest, service: ServiceDep) -> De
         raise HTTPException(status_code=404, detail=f"Unknown cluster: {cluster_id}") from error
     except InvalidDecisionError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.post("/clean", response_model=CleanReport)
+async def clean_upload(
+    service: CleanServiceDep,
+    file: Annotated[UploadFile, File(description="An occurrence CSV or TSV to check.")],
+) -> CleanReport:
+    """Run the engine on an uploaded occurrence file and return a before/after report."""
+    content = await file.read()
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise HTTPException(
+            status_code=400, detail="The file must be UTF-8 encoded text (CSV or TSV)."
+        ) from error
+    try:
+        return service.run(text)
+    except UploadError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.get("/clean/{clean_id}/download")
+def clean_download(clean_id: str, service: CleanServiceDep) -> Response:
+    """Download the annotated, cleaned CSV for a previous clean run."""
+    try:
+        csv = service.download(clean_id)
+    except CleanNotFoundError as error:
+        raise HTTPException(status_code=404, detail=f"Unknown clean id: {clean_id}") from error
+    return Response(
+        content=csv,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="taxonguard-cleaned.csv"'},
+    )

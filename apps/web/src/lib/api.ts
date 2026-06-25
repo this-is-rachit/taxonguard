@@ -69,6 +69,39 @@ export interface DecisionResponse {
   status: string;
 }
 
+export interface CleanIssue {
+  label: string;
+  count: number;
+}
+
+export interface CleanRecord {
+  gbif_id: number | null;
+  scientific_name: string | null;
+  latitude: number;
+  longitude: number;
+  flagged: boolean;
+  suspicion_score: number;
+  confidence: number;
+  reasons: string[];
+}
+
+export interface CleanSummary {
+  total_records: number;
+  flagged_records: number;
+  clean_records: number;
+  taxa: number;
+  checks_run: string[];
+  issues: CleanIssue[];
+}
+
+export interface CleanReport {
+  clean_id: string;
+  summary: CleanSummary;
+  flagged: CleanRecord[];
+  flagged_truncated: boolean;
+  download_url: string;
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -111,6 +144,35 @@ export function postDecision(
     `/clusters/${encodeURIComponent(clusterId)}/decision`,
     { method: "POST", body: JSON.stringify(body) },
   );
+}
+
+// Upload an occurrence file to be checked by the engine. FormData sets its own
+// multipart Content-Type (with the boundary), so this does not reuse the JSON
+// request helper. A 400 carries a plain reason in the response detail.
+export async function postCleanUpload(file: File): Promise<CleanReport> {
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch(`${API_BASE_URL}/clean`, {
+    method: "POST",
+    body: form,
+  });
+  if (!response.ok) {
+    let detail = `Request failed: ${response.status}`;
+    try {
+      const data = (await response.json()) as { detail?: string };
+      if (data?.detail) detail = data.detail;
+    } catch {
+      // Keep the default message if the error body is not JSON.
+    }
+    throw new ApiError(response.status, detail);
+  }
+  return (await response.json()) as CleanReport;
+}
+
+// Build an absolute URL for the cleaned-CSV download from the path the report
+// returns, so a plain anchor can link to it.
+export function cleanDownloadUrl(path: string): string {
+  return `${API_BASE_URL}${path}`;
 }
 
 export { ApiError };

@@ -81,3 +81,38 @@ class DecisionResponse(BaseModel):
 
 # Resolve the forward reference to DecisionState in ClusterSummary.
 ClusterSummary.model_rebuild()
+
+
+class CleanIssue(BaseModel):
+    label: str
+    count: int
+
+
+class CleanRecord(BaseModel):
+    gbif_id: int | None
+    scientific_name: str | None
+    latitude: float
+    longitude: float
+    flagged: bool
+    suspicion_score: float
+    confidence: float
+    reasons: list[str]
+
+
+class CleanSummaryOut(BaseModel):
+    total_records: int
+    flagged_records: int
+    clean_records: int
+    taxa: int
+    checks_run: list[str] = Field(description="Which checks ran, given the available data.")
+    issues: list[CleanIssue] = Field(description="Record counts per issue type.")
+
+
+class CleanReport(BaseModel):
+    clean_id: str
+    summary: CleanSummaryOut
+    flagged: list[CleanRecord]
+    flagged_truncated: bool = Field(
+        description="True when more records were flagged than are listed here."
+    )
+    download_url: str = Field(description="Path to download the annotated, cleaned CSV.")

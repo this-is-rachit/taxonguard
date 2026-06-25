@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  type CleanReport,
   type ClusterDetail,
   type ClusterSummary,
   type DecisionRequest,
@@ -11,6 +12,7 @@ import {
   getCluster,
   getClusters,
   getTaxa,
+  postCleanUpload,
   postDecision,
 } from "./api";
 
@@ -41,5 +43,11 @@ export function useDecision(clusterId: string) {
       queryClient.invalidateQueries({ queryKey: ["clusters"] });
       queryClient.invalidateQueries({ queryKey: ["cluster", clusterId] });
     },
+  });
+}
+
+export function useCleanUpload() {
+  return useMutation<CleanReport, Error, File>({
+    mutationFn: (file: File) => postCleanUpload(file),
   });
 }

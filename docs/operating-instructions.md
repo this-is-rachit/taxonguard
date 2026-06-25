@@ -11,7 +11,7 @@ development path.
   and Node.js LTS.
 
 No secret keys are required to run or review. GBIF credentials are only needed
-for annotation write-back, which is added in Phase 6.
+for annotation write-back.
 
 ## One command (Docker)
 
@@ -90,3 +90,33 @@ the written annotation. With either missing, the tool still runs in full: the
 decision is recorded and the screen shows the exact WKT, value, and taxon to
 create the rule by hand at https://labs.gbif.org/annotations/. No keys are ever
 required to run or review the rest of the tool.
+
+## Clean my data (run the engine on an uploaded file)
+
+The `/clean` screen runs the detection engine on a file of occurrence records
+that a user uploads (a GBIF download or their own export), then returns a
+before/after summary and an annotated, cleaned CSV. The coordinate-quality
+checks (null island, equal coordinates, whole-degree centroids, and known
+institution coordinates) always run and need no external data, so the feature
+works on any deployment with no downloads. The land/sea realm check runs when
+the Natural Earth data is present or the upload already carries an `on_land`
+column, and the per-taxon climate-outlier model runs when the WorldClim rasters
+are present and a taxon has enough records. The response states which checks ran.
+Records are flagged, never deleted: the cleaned file keeps every original row and
+adds a `flagged` column, the `suspicion_score`, and the `suspicion_reasons`.
+
+The same path is available from the command line and from the API:
+
+```bash
+# Command line: check a CSV or TSV and write the annotated, cleaned file.
+uv run python -m taxonguard_core.clean.cleaner occurrences.csv --out cleaned.csv
+
+# API: upload to POST /clean, then download the cleaned CSV.
+curl.exe -F "file=@occurrences.csv" http://localhost:8000/clean
+curl.exe -OJ http://localhost:8000/clean/<clean_id>/download
+```
+
+The accepted columns follow the common GBIF and Darwin Core names (for example
+`decimalLatitude`/`decimalLongitude`, `scientificName`, `gbifID`); plain
+`latitude`/`longitude`/`species` also work. Records without usable coordinates
+are dropped before scoring.

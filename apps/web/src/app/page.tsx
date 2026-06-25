@@ -3,7 +3,7 @@ import { Logo } from "@/components/Logo";
 const NAV = [
   { label: "Detect", href: "#" },
   { label: "Review", href: "/review" },
-  { label: "Clean my data", href: "#" },
+  { label: "Clean my data", href: "/clean" },
   { label: "About", href: "#" },
 ];
 
@@ -57,10 +57,10 @@ export default function Home() {
               Open the review screen
             </a>
             <a
-              href="#"
+              href="/clean"
               className="rounded-md border border-hairline px-5 py-2.5 text-sm font-bold text-ink hover:border-primary hover:text-primary"
             >
-              How it works
+              Clean my data
             </a>
           </div>
         </section>
@@ -88,9 +88,9 @@ export default function Home() {
             ))}
           </div>
           <p className="mt-8 text-sm text-muted">
-            The review screen lists flagged clusters on a map, shows the evidence
-            and a draft rule for each, and writes a confirmed rule back to GBIF.
-            Open it from the navigation or the button above.
+            The review screen lists flagged clusters on a map, shows the
+            evidence and a draft rule for each, and writes a confirmed rule back
+            to GBIF. Open it from the navigation or the button above.
           </p>
         </section>
       </main>
