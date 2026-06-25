@@ -102,6 +102,20 @@ export interface CleanReport {
   download_url: string;
 }
 
+export interface SpeciesSuggestion {
+  key: number;
+  name: string;
+  rank: string | null;
+  kingdom: string | null;
+}
+
+export interface SpeciesScoreReport {
+  taxon: string;
+  summary: CleanSummary;
+  records: CleanRecord[];
+  records_truncated: boolean;
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -173,6 +187,21 @@ export async function postCleanUpload(file: File): Promise<CleanReport> {
 // returns, so a plain anchor can link to it.
 export function cleanDownloadUrl(path: string): string {
   return `${API_BASE_URL}${path}`;
+}
+
+// Autocomplete scientific names for the search box (proxies GBIF's suggest API).
+export function suggestSpecies(query: string): Promise<SpeciesSuggestion[]> {
+  return request<SpeciesSuggestion[]>(
+    `/species/suggest?q=${encodeURIComponent(query)}`,
+  );
+}
+
+// Fetch and score a species on demand. The first call for a species runs the
+// engine and can take a few seconds; the API caches the result after that.
+export function scoreTaxon(taxon: string): Promise<SpeciesScoreReport> {
+  return request<SpeciesScoreReport>(
+    `/score?taxon=${encodeURIComponent(taxon)}`,
+  );
 }
 
 export { ApiError };

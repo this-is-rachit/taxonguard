@@ -20,8 +20,11 @@ from .models import (
     ClusterSummary,
     DecisionRequest,
     DecisionResponse,
+    SpeciesScoreReport,
+    SpeciesSuggestion,
     TaxonSummary,
 )
+from .score_service import SpeciesScoreError, TaxonScoreService
 from .service import (
     ClusterNotFoundError,
     ClusterService,
@@ -42,8 +45,15 @@ def get_clean_service() -> CleanService:
     return CleanService()
 
 
+@lru_cache(maxsize=1)
+def get_score_service() -> TaxonScoreService:
+    """Return the process-wide on-demand species scoring service."""
+    return TaxonScoreService()
+
+
 ServiceDep = Annotated[ClusterService, Depends(get_service)]
 CleanServiceDep = Annotated[CleanService, Depends(get_clean_service)]
+ScoreServiceDep = Annotated[TaxonScoreService, Depends(get_score_service)]
 
 router = APIRouter()
 
@@ -107,3 +117,23 @@ def clean_download(clean_id: str, service: CleanServiceDep) -> Response:
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="taxonguard-cleaned.csv"'},
     )
+
+
+@router.get("/species/suggest", response_model=list[SpeciesSuggestion])
+def species_suggest(service: ScoreServiceDep, q: str = "") -> list[SpeciesSuggestion]:
+    """Autocomplete scientific names for the search box (proxies GBIF)."""
+    try:
+        return service.suggest(q)
+    except SpeciesScoreError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+
+@router.get("/score", response_model=SpeciesScoreReport)
+def score_species(service: ScoreServiceDep, taxon: str) -> SpeciesScoreReport:
+    """Fetch and score a species on demand, returning ranked records and a summary."""
+    if not taxon.strip():
+        raise HTTPException(status_code=400, detail="A taxon name is required.")
+    try:
+        return service.score(taxon)
+    except SpeciesScoreError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error

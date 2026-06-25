@@ -304,16 +304,38 @@ def clean_occurrences(
         scored_parts.append(scored)
 
     result = pd.concat(scored_parts, ignore_index=True)
-    flagged_mask = result[SUSPICION_SCORE_COLUMN].fillna(0.0) >= min_score
-    result[FLAGGED_COLUMN] = pd.Series(
-        flagged_mask.to_numpy(dtype=bool), index=result.index, dtype="boolean"
-    )
 
     checks_run = ["coordinate quality"]
     if realm_available:
         checks_run.append("land/sea realm")
     if any_climate:
         checks_run.append("climate niche")
+
+    return build_report_from_scored(result, checks_run=checks_run, min_score=min_score)
+
+
+def build_report_from_scored(
+    frame: pd.DataFrame,
+    *,
+    checks_run: list[str],
+    min_score: float = DEFAULT_MIN_SCORE,
+) -> CleanResult:
+    """Shape an already-scored frame into a flagged frame plus a summary.
+
+    The frame must carry the fused suspicion columns. Records scoring at or above
+    ``min_score`` are marked flagged, issue counts are tallied per reason, and
+    ``checks_run`` records which checks produced the scores. Shared by the upload
+    cleaner and the on-demand species scorer so both report identically.
+    """
+    result = frame.copy()
+    if result.empty:
+        result[FLAGGED_COLUMN] = pd.Series(dtype="boolean")
+        return CleanResult(frame=result, summary=CleanSummary(0, 0, {}, checks_run, 0))
+
+    flagged_mask = result[SUSPICION_SCORE_COLUMN].fillna(0.0) >= min_score
+    result[FLAGGED_COLUMN] = pd.Series(
+        flagged_mask.to_numpy(dtype=bool), index=result.index, dtype="boolean"
+    )
 
     issues: dict[str, int] = {}
     for column in DETERMINISTIC_FLAG_COLUMNS:
@@ -329,12 +351,13 @@ def clean_occurrences(
     if env_reason:
         issues[_REASON_LABELS[ENVIRONMENTAL_REASON]] = env_reason
 
+    taxa = int(result["scientific_name"].nunique()) if "scientific_name" in result.columns else 1
     summary = CleanSummary(
         total_records=int(len(result)),
         flagged_records=int(flagged_mask.sum()),
         issues=issues,
         checks_run=checks_run,
-        taxa=len(names),
+        taxa=taxa,
     )
     return CleanResult(frame=result, summary=summary)
 

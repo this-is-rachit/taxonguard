@@ -116,3 +116,21 @@ class CleanReport(BaseModel):
         description="True when more records were flagged than are listed here."
     )
     download_url: str = Field(description="Path to download the annotated, cleaned CSV.")
+
+
+class SpeciesSuggestion(BaseModel):
+    key: int
+    name: str
+    rank: str | None = None
+    kingdom: str | None = None
+
+
+class SpeciesScoreReport(BaseModel):
+    taxon: str
+    summary: CleanSummaryOut
+    records: list[CleanRecord] = Field(
+        description="Every scored record, most suspicious first (capped)."
+    )
+    records_truncated: bool = Field(
+        description="True when more records were scored than are listed here."
+    )

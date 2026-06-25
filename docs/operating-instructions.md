@@ -91,6 +91,32 @@ decision is recorded and the screen shows the exact WKT, value, and taxon to
 create the rule by hand at https://labs.gbif.org/annotations/. No keys are ever
 required to run or review the rest of the tool.
 
+## Explore (search and score any species on demand)
+
+The `/explore` screen is the search-first entry point. Type a scientific name and
+the search box suggests matches (via GBIF's keyless suggest API); pick one and the
+engine fetches that species' records, learns where it plausibly occurs, scores
+every record, and returns the suspicious ones with a plain reason and a score for
+each. Results are cached in memory, so a repeat search for the same species is
+instant. The screen has a faceted left rail (a minimum-suspicion slider and reason
+filters with live counts) and three views of the same result set: a map, a sortable
+table, and a summary of issue counts. Clicking a record opens a detail panel with
+its coordinates, reasons, and a link to the record on GBIF.
+
+On-demand scoring runs the full pipeline, so the climate-niche check needs the
+WorldClim rasters and the land/sea check needs the Natural Earth data on the
+server (the same data the cache build uses); without them the coordinate-quality
+checks still run. For a deployment, pre-cache the demo species so the first search
+is instant. The same path is available from the API:
+
+```bash
+# Autocomplete scientific names.
+curl.exe "http://localhost:8000/species/suggest?q=rana"
+
+# Fetch and score a species on demand.
+curl.exe "http://localhost:8000/score?taxon=Rana%20temporaria"
+```
+
 ## Clean my data (run the engine on an uploaded file)
 
 The `/clean` screen runs the detection engine on a file of occurrence records

@@ -8,12 +8,16 @@ import {
   type ClusterSummary,
   type DecisionRequest,
   type DecisionResponse,
+  type SpeciesScoreReport,
+  type SpeciesSuggestion,
   type TaxonSummary,
   getCluster,
   getClusters,
   getTaxa,
   postCleanUpload,
   postDecision,
+  scoreTaxon,
+  suggestSpecies,
 } from "./api";
 
 export function useTaxa() {
@@ -49,5 +53,24 @@ export function useDecision(clusterId: string) {
 export function useCleanUpload() {
   return useMutation<CleanReport, Error, File>({
     mutationFn: (file: File) => postCleanUpload(file),
+  });
+}
+
+export function useSpeciesSuggest(query: string) {
+  return useQuery<SpeciesSuggestion[]>({
+    queryKey: ["suggest", query],
+    queryFn: () => suggestSpecies(query),
+    enabled: query.trim().length >= 2,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSpeciesScore(taxon: string | null) {
+  return useQuery<SpeciesScoreReport>({
+    queryKey: ["score", taxon],
+    queryFn: () => scoreTaxon(taxon as string),
+    enabled: taxon !== null,
+    staleTime: Infinity,
+    retry: false,
   });
 }

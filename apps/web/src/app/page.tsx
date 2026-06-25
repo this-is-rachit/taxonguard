@@ -1,10 +1,27 @@
 import { Logo } from "@/components/Logo";
 
 const NAV = [
-  { label: "Detect", href: "#" },
+  { label: "Explore", href: "/explore" },
   { label: "Review", href: "/review" },
   { label: "Clean my data", href: "/clean" },
   { label: "About", href: "#" },
+];
+
+const EXAMPLES = ["Rana temporaria", "Vulpes lagopus", "Panthera leo"];
+
+const STEPS = [
+  {
+    k: "Detect",
+    v: "A niche and outlier model learns each species from its own records and scores every record for plausibility.",
+  },
+  {
+    k: "Explain",
+    v: "Each flag gets one plain sentence a human can judge at a glance, never a black-box verdict.",
+  },
+  {
+    k: "Write back",
+    v: "A confirmed rule is published to GBIF and keeps cleaning future data for everyone.",
+  },
 ];
 
 export default function Home() {
@@ -43,44 +60,54 @@ export default function Home() {
             TaxonGuard
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted">
-            Detect, explain, expert-confirm, and write back implausible GBIF
-            occurrence records. TaxonGuard learns where each taxon plausibly
-            occurs from its own records, flags the records that do not fit, and
-            lets a domain expert confirm a fix that cleans existing data and
-            keeps catching the same error in future data drops.
+            A spell-checker for the world&apos;s species records. Search any
+            species and TaxonGuard finds the sightings that cannot be right,
+            explains why, and lets an expert confirm a fix that flows back into
+            GBIF.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href="/review"
-              className="rounded-md bg-secondary px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
-            >
-              Open the review screen
-            </a>
+
+          <form action="/explore" method="get" className="mt-8 max-w-2xl">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                name="taxon"
+                placeholder="Search a species, e.g. Rana temporaria"
+                aria-label="Search a species"
+                className="w-full rounded-md border border-hairline px-4 py-2.5 text-sm text-ink outline-none focus:border-secondary"
+              />
+              <button
+                type="submit"
+                className="shrink-0 rounded-md bg-secondary px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
+              >
+                Explore
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted">Try:</span>
+            {EXAMPLES.map((name) => (
+              <a
+                key={name}
+                href={`/explore?taxon=${encodeURIComponent(name)}`}
+                className="rounded-full bg-panel px-3 py-1 text-xs font-bold italic text-muted hover:text-ink"
+              >
+                {name}
+              </a>
+            ))}
+            <span className="text-xs text-muted">or</span>
             <a
               href="/clean"
-              className="rounded-md border border-hairline px-5 py-2.5 text-sm font-bold text-ink hover:border-primary hover:text-primary"
+              className="text-xs font-bold text-primary hover:underline"
             >
-              Clean my data
+              clean your own file
             </a>
           </div>
         </section>
 
         <section className="my-16 rounded-lg bg-panel p-10">
           <div className="grid gap-6 sm:grid-cols-3">
-            {[
-              {
-                k: "Detect",
-                v: "A niche and outlier model scores every record for plausibility.",
-              },
-              {
-                k: "Explain",
-                v: "Each flag gets one plain sentence a human can judge at a glance.",
-              },
-              {
-                k: "Write back",
-                v: "A confirmed rule is published to GBIF and cleans future data.",
-              },
-            ].map((c) => (
+            {STEPS.map((c) => (
               <div key={c.k}>
                 <p className="text-sm font-bold text-ink">{c.k}</p>
                 <p className="mt-2 text-sm leading-6 text-muted">{c.v}</p>
@@ -88,9 +115,10 @@ export default function Home() {
             ))}
           </div>
           <p className="mt-8 text-sm text-muted">
-            The review screen lists flagged clusters on a map, shows the
-            evidence and a draft rule for each, and writes a confirmed rule back
-            to GBIF. Open it from the navigation or the button above.
+            Open the Explore screen to search a species and see its suspicious
+            records on a map, in a table, or as a summary. The review screen
+            adds the expert confirm step and writes a confirmed rule back to
+            GBIF.
           </p>
         </section>
       </main>
