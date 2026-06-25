@@ -99,10 +99,43 @@ to catch them; it does not credit the engine for the isolated case it
 intentionally lets pass. This trade-off is a design choice, and the harness makes
 it measurable rather than hiding it.
 
-## Toward a citable benchmark
+## A citable, real-data benchmark with a held-out split
 
-The next step for this evaluation is provenance: building the plausible base
-population from a real GBIF download so the set carries a citable DOI, then
-planting the same controlled errors into it. The harness already accepts any base
-population, so this is a data swap rather than a rewrite. The DOI will be recorded
-in `docs/data-sources.md` when the download is run.
+The synthetic benchmark above is fast and needs no network, so it stays the CI
+benchmark. But because *we* control its plausible distribution (clean niches,
+clear gaps), its headline numbers reflect a controlled setting and do not bound
+real-world performance. The honest test plants the same six error types into a
+**real GBIF download** and reports on a **held-out split**:
+
+- Provenance. `taxonguard_core.data.download` fetches the plausible population
+  through the GBIF download API, which mints a citable DOI (recorded in
+  `docs/data-sources.md`). The demo taxon is *Rana temporaria* restricted to a few
+  countries. Planting known errors into real records is the standard way these
+  tools (CoordinateCleaner and similar) are validated.
+- Real difficulty. Real records have fat tails, multiple modes, and genuine
+  range-edge points, so the plausible class is no longer cleanly separable. The
+  climate error is graded from the real frame's own per-variable mean and spread,
+  so its severity is grounded in the data.
+- Held-out reporting. The records are split, stratified by label and error type,
+  into a calibration fold and a held-out report fold. The fusion weights are
+  calibrated on the calibration fold only; every metric is reported on the
+  untouched held-out fold. This removes the in-sample optimism of the
+  at-threshold recall. (Ranking metrics such as ROC-AUC and average precision are
+  scale invariant to the weights, so only the at-threshold recall carried that
+  optimism; the split removes it.)
+
+The real-data evaluation is run on the user's machine, because the GBIF download
+is live and asynchronous and api.gbif.org is not reachable from CI. After the
+download:
+
+```
+uv run python -m taxonguard_core.data.download "Rana temporaria" \
+    --country GB --username ACCOUNT --password SECRET --build
+uv run python -m taxonguard_core.eval.run \
+    --real-cache data/real/rana_temporaria.parquet --taxon "Rana temporaria" --realm freshwater
+```
+
+This writes `docs/evaluation_real_results.json` and `docs/evaluation_real.png`,
+and prints both the calibration-fold (in-sample) and held-out numbers. The
+held-out recall and AUC are expected to fall below the synthetic 1.0; that lower
+number is the honest one, and the gap between the folds is the point.

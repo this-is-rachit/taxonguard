@@ -279,3 +279,168 @@ def benchmark_label_counts(cases: Sequence[BenchmarkCase]) -> dict[str, int]:
         plausible += int((labels == "plausible").sum())
         suspicious += int((labels == "suspicious").sum())
     return {"plausible": plausible, "suspicious": suspicious, "total": plausible + suspicious}
+
+
+# --- Real-data benchmark ---------------------------------------------------
+#
+# The synthetic benchmark above controls the plausible distribution, which is why
+# it scores so cleanly. The honest test plants the same six error types into a
+# *real* GBIF download (so the set carries a citable DOI) and reports on a
+# held-out split. The functions below take a real per-taxon frame (the output of
+# the data pipeline: tidy occurrences plus bio_* columns and on_land) as the
+# plausible class and plant errors into it, reusing the engine's expectations. The
+# climate error is derived from the real frame's own climate distribution rather
+# than from a hand-picked niche, so its severity is grounded in the data.
+
+# A fixed ocean coordinate (mid-North-Atlantic) for planted realm-mismatch errors.
+_OCEAN_POINT: tuple[float, float] = (35.0, -40.0)
+
+# A fixed institution coordinate (Natural History Museum, London) for planted
+# institution errors. Any reviewer can swap in a museum near their taxon.
+_REAL_INSTITUTION: tuple[float, float] = (51.4967, -0.1764)
+
+
+def _bio_columns(frame: pd.DataFrame, variables: Sequence[int]) -> list[str]:
+    return [f"bio_{v}" for v in variables if f"bio_{v}" in frame.columns]
+
+
+def _densest_cell_centroid(frame: pd.DataFrame, cell_size_deg: float = 1.0) -> tuple[float, float]:
+    """Return the centroid of the most heavily sampled one-degree cell.
+
+    Planted climate errors are placed here so the sampling-effort correction does
+    not down-weight them, isolating the environmental signal under test.
+    """
+    lat = frame["decimal_latitude"].to_numpy(dtype="float64")
+    lon = frame["decimal_longitude"].to_numpy(dtype="float64")
+    ix = np.floor(lon / cell_size_deg).astype("int64")
+    iy = np.floor(lat / cell_size_deg).astype("int64")
+    cells = pd.Series([f"{x}_{y}" for x, y in zip(ix, iy, strict=True)])
+    densest = cells.value_counts().idxmax()
+    in_cell = cells.to_numpy() == densest
+    return float(lat[in_cell].mean()), float(lon[in_cell].mean())
+
+
+def plant_labeled_errors(
+    base: pd.DataFrame,
+    *,
+    variables: Sequence[int],
+    institution_point: tuple[float, float] = _REAL_INSTITUTION,
+    errors_per_type: int = DEFAULT_ERRORS_PER_TYPE,
+    seed: int = 0,
+) -> pd.DataFrame:
+    """Return a labeled frame: the real base population plus planted errors.
+
+    The base frame is treated as the plausible class (label 'plausible'). The same
+    six error types as the synthetic benchmark are planted deterministically, each
+    placed to trip exactly one detector. Climate errors are graded in standard
+    deviations away from the base's own per-variable mean, so their severity is
+    grounded in the real data. The returned frame carries label, error_type, and
+    taxon columns alongside the engine's input columns.
+    """
+    bio_cols = _bio_columns(base, variables)
+    if not bio_cols:
+        raise ValueError("base frame has no bio_* climate columns for the given variables")
+
+    rng = np.random.default_rng(seed)
+    plausible = base.copy().reset_index(drop=True)
+    plausible["label"] = "plausible"
+    plausible["error_type"] = ""
+
+    # Per-variable mean and spread of the real plausible climate, for the planted
+    # climate outliers. A degenerate (zero) spread falls back to a unit step.
+    means = {c: float(plausible[c].mean(skipna=True)) for c in bio_cols}
+    spreads = {c: float(plausible[c].std(skipna=True)) or 1.0 for c in bio_cols}
+    cell_lat, cell_lon = _densest_cell_centroid(plausible)
+
+    lat_lo, lat_hi = (
+        float(plausible["decimal_latitude"].min()),
+        float(plausible["decimal_latitude"].max()),
+    )
+    lon_lo, lon_hi = (
+        float(plausible["decimal_longitude"].min()),
+        float(plausible["decimal_longitude"].max()),
+    )
+
+    next_id = int(pd.to_numeric(plausible["gbif_id"], errors="coerce").max() or 0) + 1
+    rows: list[dict[str, object]] = []
+
+    def base_climate() -> dict[str, float]:
+        # Plausible climate values so a non-climate error trips only its own check.
+        return {c: float(rng.normal(means[c], spreads[c] * 0.25)) for c in bio_cols}
+
+    def add(lat: float, lon: float, on_land: bool, kind: str, climate: dict[str, float]) -> None:
+        nonlocal next_id
+        row: dict[str, object] = {
+            "gbif_id": next_id,
+            "scientific_name": "planted error",
+            "decimal_latitude": lat,
+            "decimal_longitude": lon,
+            "on_land": on_land,
+            "label": "suspicious",
+            "error_type": kind,
+        }
+        row.update(climate)
+        rows.append(row)
+        next_id += 1
+
+    for _ in range(errors_per_type):
+        add(
+            float(rng.uniform(lat_lo, lat_hi)),
+            float(rng.uniform(lon_lo, lon_hi)),
+            False,
+            "ocean",
+            base_climate(),
+        )
+        add(0.0, 0.0, False, "null_island", base_climate())
+        v = float(rng.uniform(max(20.3, lat_lo), min(79.7, lat_hi) if lat_hi > 20.3 else 79.7))
+        add(v, v, True, "equal", base_climate())
+        glat = float(np.round(rng.uniform(lat_lo, lat_hi)))
+        glon = float(np.round(rng.uniform(lon_lo, lon_hi)))
+        glon = glon if glon != glat else glon + 1.0
+        add(glat, glon, True, "gridded", base_climate())
+        add(institution_point[0], institution_point[1], True, "institution", base_climate())
+
+    # Climate errors, graded 3..11 sigma from the base mean, placed in the densest
+    # cell so effort does not mask them.
+    for severity in np.linspace(3.0, 11.0, errors_per_type):
+        climate = {c: means[c] + float(severity) * spreads[c] for c in bio_cols}
+        add(
+            float(rng.uniform(cell_lat - 0.45, cell_lat + 0.45)),
+            float(rng.uniform(cell_lon - 0.45, cell_lon + 0.45)),
+            True,
+            "climate",
+            climate,
+        )
+
+    planted = pd.DataFrame(rows)
+    planted["on_land"] = pd.array(planted["on_land"].to_numpy(dtype=bool), dtype="boolean")
+    combined = pd.concat([plausible, planted], ignore_index=True)
+    combined["taxon"] = combined.get("scientific_name", "real taxon")
+    return combined
+
+
+def build_real_case(
+    base: pd.DataFrame,
+    *,
+    name: str,
+    expected_realm: Realm,
+    variables: Sequence[int],
+    institution_point: tuple[float, float] = _REAL_INSTITUTION,
+    errors_per_type: int = DEFAULT_ERRORS_PER_TYPE,
+    seed: int = 0,
+) -> BenchmarkCase:
+    """Wrap a real plausible frame and its planted errors as one BenchmarkCase."""
+    frame = plant_labeled_errors(
+        base,
+        variables=variables,
+        institution_point=institution_point,
+        errors_per_type=errors_per_type,
+        seed=seed,
+    )
+    frame["taxon"] = name
+    return BenchmarkCase(
+        name=name,
+        expected_realm=expected_realm,
+        institution_points=(institution_point,),
+        frame=frame,
+    )
