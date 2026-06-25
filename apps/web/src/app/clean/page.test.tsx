@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type CleanReport, postCleanUpload } from "@/lib/api";
@@ -9,6 +15,10 @@ import CleanPage from "./page";
 vi.mock("@/lib/api", () => ({
   postCleanUpload: vi.fn(),
   cleanDownloadUrl: (path: string) => `http://api.test${path}`,
+}));
+
+vi.mock("@/components/explore/RecordsMap", () => ({
+  RecordsMap: () => <div data-testid="records-map" />,
 }));
 
 const REPORT: CleanReport = {
@@ -79,7 +89,9 @@ describe("Clean page", () => {
     selectFile();
     fireEvent.click(screen.getByRole("button", { name: "Check file" }));
 
-    expect(await screen.findByText("Records checked")).toBeInTheDocument();
+    // The summary is a view tab in the shared explorer.
+    fireEvent.click(await screen.findByRole("tab", { name: "summary" }));
+    expect(await screen.findByText("Records scanned")).toBeInTheDocument();
     expect(screen.getByText("Flagged as suspect")).toBeInTheDocument();
     expect(screen.getByText("coordinate quality")).toBeInTheDocument();
   });
@@ -90,9 +102,11 @@ describe("Clean page", () => {
     selectFile();
     fireEvent.click(screen.getByRole("button", { name: "Check file" }));
 
-    expect(await screen.findByText("Rana temporaria")).toBeInTheDocument();
-    expect(screen.getByText("Null island")).toBeInTheDocument();
-    expect(screen.getByText("Land/sea mismatch")).toBeInTheDocument();
+    // Default Table view; scope to the table since the facet rail repeats labels.
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("Rana temporaria")).toBeInTheDocument();
+    expect(within(table).getByText("Null island")).toBeInTheDocument();
+    expect(within(table).getByText("Land/sea mismatch")).toBeInTheDocument();
   });
 
   it("offers a download link to the cleaned CSV", async () => {

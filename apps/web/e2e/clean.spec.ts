@@ -55,11 +55,16 @@ test("clean my data: upload a file and see the flagged records", async ({
   });
   await page.getByRole("button", { name: "Check file" }).click();
 
-  // The before/after summary and the flagged record appear.
-  await expect(page.getByText("Records checked")).toBeVisible();
+  // The flagged record appears in the default table view (scope to the table,
+  // since the facet rail repeats the reason labels).
+  const table = page.getByRole("table");
+  await expect(table.getByText("Rana temporaria")).toBeVisible();
+  await expect(table.getByText("Null island")).toBeVisible();
+
+  // The summary is a view tab.
+  await page.getByRole("tab", { name: "summary" }).click();
+  await expect(page.getByText("Records scanned")).toBeVisible();
   await expect(page.getByText("Flagged as suspect")).toBeVisible();
-  await expect(page.getByText("Rana temporaria")).toBeVisible();
-  await expect(page.getByText("Null island")).toBeVisible();
 
   // The cleaned-CSV download is offered.
   await expect(

@@ -101,7 +101,11 @@ each. Results are cached in memory, so a repeat search for the same species is
 instant. The screen has a faceted left rail (a minimum-suspicion slider and reason
 filters with live counts) and three views of the same result set: a map, a sortable
 table, and a summary of issue counts. Clicking a record opens a detail panel with
-its coordinates, reasons, and a link to the record on GBIF.
+its coordinates, reasons, and a link to the record on GBIF. On the map you can
+draw a polygon ("Draw area") to restrict the results to a region and frame the
+view to the records ("Fit to data"); the score slider, reason filters, and drawn
+area apply across all three views. The "Clean my data" screen uses these same
+faceted views over its flagged records.
 
 On-demand scoring runs the full pipeline, so the climate-niche check needs the
 WorldClim rasters and the land/sea check needs the Natural Earth data on the
