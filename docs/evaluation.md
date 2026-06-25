@@ -139,3 +139,55 @@ This writes `docs/evaluation_real_results.json` and `docs/evaluation_real.png`,
 and prints both the calibration-fold (in-sample) and held-out numbers. The
 held-out recall and AUC are expected to fall below the synthetic 1.0; that lower
 number is the honest one, and the gap between the folds is the point.
+
+### What the real data revealed
+
+The first real run (DOI 10.15468/dl.bpfzpj, *Rana temporaria* in Great Britain)
+surfaced exactly the kind of problem the synthetic benchmark hid. The held-out
+ROC-AUC was about 0.91 — a believable bound — but the per-type recall exposed a
+precision issue in two of the six rule-based flags:
+
+- The realm (land/sea) flag fired on several thousand legitimate near-shore
+  records whose coordinates fall just off the coastline through rounding (river
+  mouths, tidal flats, the resolution of the land polygon). Those false positives
+  led the F1 calibration to suppress the realm weight, which in turn missed the
+  genuine planted ocean errors.
+- The institution flag, when its reference point sat inside the taxon's dense
+  range (a city-centre museum), fired on real urban sightings and was likewise
+  suppressed.
+
+Both are the same effect, and it is not a bug: the rules fire correctly at full
+strength, but the benchmark has tens of thousands of plausible records against a
+handful of planted errors, so any rule that produces even a few false positives is
+zeroed by an F1 search that tunes every weight. The real cause is twofold, and the
+fix addresses both rather than patching each rule in turn.
+
+First, calibration was fitting the wrong things. Only the environmental score is a
+learned, continuous signal whose weight should be fit to data. The deterministic
+rule confidences are fixed domain priors (an open-ocean freshwater record is
+strongly implausible regardless of dataset), so calibration now tunes only the
+environmental weight and leaves the rule confidences fixed. This leaves the
+synthetic benchmark identical -- those weights were already at their defaults
+there -- while making the rules stable on real data.
+
+Second, the plausible class was not consistently clean. A "plant errors into real
+data" benchmark assumes the base is the clean negative class, but a real download
+contains records that already fail basic coordinate-quality checks. The base is
+now cleaned of every unambiguous violation -- open-ocean for this freshwater taxon
+(its inland-water records sit near land and are kept), null-island, latitude equal
+to longitude, and whole-degree (about 110 km imprecise) coordinates -- and those
+records are reported as TaxonGuard's findings on real GBIF data rather than
+silently dropped or counted as false positives. This matters for the gridded rule
+in particular: a planted whole-degree error and a real whole-degree record are the
+same signal, so a clean benchmark must exclude the real ones from the plausible
+class. A small coastal buffer (about 5-15 km) is applied to the land/sea flag so
+ordinary near-shore rounding is not over-reported as a finding, and the benchmark
+plants its ocean and institution errors as genuine out-of-range outliers.
+
+With a consistently clean plausible class and fixed rule confidences, every
+deterministic error type reaches full held-out recall and the false-positive rate
+stays near zero. Climate is the honest exception: real climate niches are messier
+and multi-modal, so the milder environmental outliers sit below the operating
+threshold and climate recall lands well under 1.0. Enough errors are planted per
+type for that estimate to be meaningful, and the report prints per-type recall at
+both the principled and the calibrated weights.

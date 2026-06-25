@@ -21,8 +21,9 @@ from ..engine.fusion import FusionWeights
 from .metrics import average_precision, metrics_at
 from .scoring import PreparedCase, fuse_prepared, labels_are_suspicious, suspicion_scores
 
-# The weight fields tuned by the search, in fusion order.
-WEIGHT_FIELDS: tuple[str, ...] = (
+# Every tunable weight, in fusion order. Kept for reference and for the full
+# sweep used in development.
+ALL_WEIGHT_FIELDS: tuple[str, ...] = (
     "environmental",
     "realm_mismatch",
     "zero_coordinates",
@@ -30,6 +31,17 @@ WEIGHT_FIELDS: tuple[str, ...] = (
     "gridded_coordinates",
     "institution_coordinates",
 )
+
+# The weights calibration tunes by default. Only the environmental score is a
+# learned, continuous signal whose weight should be fit to data. The deterministic
+# rule confidences encode fixed domain knowledge (an open-ocean freshwater record
+# is strongly implausible regardless of dataset), so fitting them to a small,
+# imbalanced benchmark is unsound: any rule that fires on a few real records would
+# be zeroed to chase precision. They are therefore held fixed.
+DEFAULT_WEIGHT_FIELDS: tuple[str, ...] = ("environmental",)
+
+# Backwards-compatible alias.
+WEIGHT_FIELDS: tuple[str, ...] = DEFAULT_WEIGHT_FIELDS
 
 Objective = Callable[[np.ndarray, np.ndarray], float]
 
@@ -92,8 +104,13 @@ def calibrate(
     bounds: tuple[float, float] = DEFAULT_BOUNDS,
     grid_steps: int = DEFAULT_GRID_STEPS,
     passes: int = DEFAULT_PASSES,
+    weight_fields: Sequence[str] = DEFAULT_WEIGHT_FIELDS,
 ) -> CalibrationResult:
     """Coordinate-descent search for the weights that maximise the objective.
+
+    By default only the environmental weight is tuned (see DEFAULT_WEIGHT_FIELDS);
+    the deterministic rule confidences are fixed domain priors and are not fit to
+    the benchmark. Pass ``weight_fields=ALL_WEIGHT_FIELDS`` to sweep every weight.
 
     Deterministic: with the same prepared benchmark and parameters it always
     returns the same weights. The result records the baseline (starting) value
@@ -108,7 +125,7 @@ def calibrate(
 
     for _ in range(passes):
         improved = False
-        for field_name in WEIGHT_FIELDS:
+        for field_name in weight_fields:
             current_best = best
             current_value = best_value
             for candidate in grid:

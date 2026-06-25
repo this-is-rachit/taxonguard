@@ -26,8 +26,17 @@ def _load_land_geometries(path: Path) -> list[shapely.Geometry]:
     return [shape(feature["geometry"]) for feature in data["features"]]
 
 
-def add_land_sea_flag(frame: pd.DataFrame, *, data_dir: Path | None = None) -> pd.DataFrame:
+def add_land_sea_flag(
+    frame: pd.DataFrame, *, data_dir: Path | None = None, sea_buffer_deg: float = 0.0
+) -> pd.DataFrame:
     """Add a boolean on_land column. True if the point is on land.
+
+    ``sea_buffer_deg`` widens "on land" to include points within that many degrees
+    of the coast, so coordinates that fall just offshore through rounding (river
+    mouths, tidal flats, the resolution of the coastline) are not misread as the
+    open ocean. With the default 0.0 the test is an exact point-in-polygon, as
+    before; the real-data pipeline passes a small buffer (about 5 km) so the realm
+    check flags only genuinely pelagic points.
 
     Raises FileNotFoundError if the Natural Earth data has not been downloaded.
     """
@@ -52,7 +61,10 @@ def add_land_sea_flag(frame: pd.DataFrame, *, data_dir: Path | None = None) -> p
     )
 
     on_land = np.zeros(len(points), dtype=bool)
-    hits = tree.query(points, predicate="intersects")
+    if sea_buffer_deg > 0.0:
+        hits = tree.query(points, predicate="dwithin", distance=sea_buffer_deg)
+    else:
+        hits = tree.query(points, predicate="intersects")
     if hits.size:
         on_land[np.unique(hits[0])] = True
 

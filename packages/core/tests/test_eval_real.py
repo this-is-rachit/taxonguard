@@ -66,6 +66,20 @@ def test_planted_ocean_errors_are_off_land() -> None:
     planted = plant_labeled_errors(_base_frame(), variables=VARIABLES, seed=0)
     ocean = planted[planted["error_type"] == "ocean"]
     assert not ocean["on_land"].fillna(True).any()
+    # Ocean errors sit in genuine open ocean (mid-Atlantic), well outside the GB
+    # base range, so they survive the coastal buffer as true realm mismatches.
+    assert ocean["decimal_longitude"].between(-42.0, -38.0).all()
+    assert ocean["decimal_latitude"].between(33.0, 37.0).all()
+
+
+def test_planted_institution_errors_are_out_of_range() -> None:
+    base = _base_frame()
+    planted = plant_labeled_errors(base, variables=VARIABLES, seed=0)
+    inst = planted[planted["error_type"] == "institution"]
+    # The institution coordinate is outside the base taxon's longitude range, so
+    # the planted records are genuine out-of-range outliers, not city-centre
+    # sightings near an in-range museum.
+    assert (inst["decimal_longitude"] < base["decimal_longitude"].min()).all()
 
 
 # --- split ----------------------------------------------------------------
@@ -154,3 +168,71 @@ def test_real_report_is_deterministic() -> None:
     second = build_real_report(_base_frame(), **kwargs)
     assert first["holdout"]["at_operating_threshold"] == second["holdout"]["at_operating_threshold"]
     assert first["calibration"]["calibrated_weights"] == second["calibration"]["calibrated_weights"]
+
+
+# --- base-population cleaning ---------------------------------------------
+
+
+def test_clean_base_population_removes_real_anomalies() -> None:
+    from taxonguard_core.eval.benchmark import clean_base_population
+
+    base = _base_frame(n=100)
+    # Inject genuine anomalies into the supposedly-plausible base.
+    base.loc[0, "on_land"] = False  # open ocean for a freshwater taxon
+    base.loc[1, "decimal_latitude"] = 0.0
+    base.loc[1, "decimal_longitude"] = 0.0  # null island
+    base.loc[2, "decimal_latitude"] = base.loc[2, "decimal_longitude"]  # lat == lon
+    clean, dropped = clean_base_population(base, expected_realm="freshwater")
+    assert len(dropped) == 3
+    assert len(clean) == 97
+    # The kept records carry none of the removal reasons.
+    leftover, _ = clean_base_population(clean, expected_realm="freshwater")
+    assert len(leftover) == len(clean)
+
+
+def test_clean_base_population_removes_gridded() -> None:
+    from taxonguard_core.eval.benchmark import clean_base_population
+
+    base = _base_frame(n=50)
+    # Whole-degree coordinates are a coordinate-quality problem (about 110 km
+    # imprecise), so they are removed from the plausible class and reported.
+    base.loc[0, "decimal_latitude"] = 55.0
+    base.loc[0, "decimal_longitude"] = -3.0
+    clean, dropped = clean_base_population(base, expected_realm="freshwater")
+    assert len(dropped) == 1
+    assert int(dropped["det_gridded_coordinates"].sum()) == 1
+    assert len(clean) == 49
+
+
+def test_real_report_recovers_ocean_after_cleaning() -> None:
+    # A base with residual open-ocean anomalies must still calibrate the realm flag
+    # to full recall, because cleaning removes them from the plausible class.
+    rng = np.random.default_rng(0)
+    n = 400
+    on_land = np.ones(n, dtype=bool)
+    on_land[rng.choice(n, size=12, replace=False)] = False
+    base = pd.DataFrame(
+        {
+            "gbif_id": list(range(1, n + 1)),
+            "scientific_name": "Rana temporaria",
+            "decimal_latitude": rng.uniform(50, 58, n),
+            "decimal_longitude": rng.uniform(-6, 1, n),
+            "bio_1": rng.normal(90, 12, n),
+            "bio_2": rng.normal(60, 8, n),
+            "on_land": pd.array(on_land, dtype="boolean"),
+        }
+    )
+    report = build_real_report(
+        base,
+        name="Rana temporaria",
+        expected_realm="freshwater",
+        variables=VARIABLES,
+        grid_steps=30,
+        seed=0,
+    )
+    assert report["base_cleaning"]["total"] == 12
+    assert report["base_cleaning"]["realm_mismatch"] == 12
+    # Realm flag is no longer suppressed by calibration.
+    assert report["holdout"]["per_type_recall_at_threshold"]["ocean"] == 1.0
+    # No plausible record is a false positive.
+    assert report["holdout"]["at_operating_threshold"]["precision"] == 1.0

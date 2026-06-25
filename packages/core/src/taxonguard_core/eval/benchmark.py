@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+from ..engine.deterministic import add_deterministic_flags
 from ..taxa import Realm
 
 # Climate variables used throughout the benchmark (bio_1, bio_2). The synthetic
@@ -292,12 +293,17 @@ def benchmark_label_counts(cases: Sequence[BenchmarkCase]) -> dict[str, int]:
 # climate error is derived from the real frame's own climate distribution rather
 # than from a hand-picked niche, so its severity is grounded in the data.
 
-# A fixed ocean coordinate (mid-North-Atlantic) for planted realm-mismatch errors.
+# A fixed open-ocean coordinate (mid-North-Atlantic, far from any continental
+# coast) for planted realm-mismatch errors. Genuinely pelagic, so it survives the
+# coastal buffer in the land/sea flag and tests a real "frog in the ocean".
 _OCEAN_POINT: tuple[float, float] = (35.0, -40.0)
 
-# A fixed institution coordinate (Natural History Museum, London) for planted
-# institution errors. Any reviewer can swap in a museum near their taxon.
-_REAL_INSTITUTION: tuple[float, float] = (51.4967, -0.1764)
+# A fixed institution coordinate (the American Museum of Natural History, New
+# York) for planted institution errors. It is deliberately outside the European
+# range of the demo taxon, so the planted records are genuine out-of-range
+# outliers rather than real city-centre sightings near an in-range museum. For a
+# different taxon, pass an institution point outside its range.
+_REAL_INSTITUTION: tuple[float, float] = (40.7813, -73.9740)
 
 
 def _bio_columns(frame: pd.DataFrame, variables: Sequence[int]) -> list[str]:
@@ -385,8 +391,8 @@ def plant_labeled_errors(
 
     for _ in range(errors_per_type):
         add(
-            float(rng.uniform(lat_lo, lat_hi)),
-            float(rng.uniform(lon_lo, lon_hi)),
+            _OCEAN_POINT[0] + float(rng.uniform(-1.0, 1.0)),
+            _OCEAN_POINT[1] + float(rng.uniform(-1.0, 1.0)),
             False,
             "ocean",
             base_climate(),
@@ -444,3 +450,58 @@ def build_real_case(
         institution_points=(institution_point,),
         frame=frame,
     )
+
+
+# Reason codes that mark a base record as not verified-plausible: it fails an
+# unambiguous coordinate-quality check, so it does not belong in the clean
+# negative class. Whole-degree (gridded) coordinates are included because a
+# coordinate rounded to a full degree is about 110 km imprecise -- a recognised
+# GBIF coordinate-quality problem, not a usable point location.
+_BASE_CLEAN_FLAGS: tuple[str, ...] = (
+    "det_realm_mismatch",
+    "det_zero_coordinates",
+    "det_equal_coordinates",
+    "det_gridded_coordinates",
+)
+
+
+def clean_base_population(
+    base: pd.DataFrame, *, expected_realm: Realm
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Split a real frame into a verified-plausible base and its real anomalies.
+
+    A "plant errors into real data" benchmark assumes the base population is the
+    clean, negative class, but a real GBIF download contains records that already
+    fail basic coordinate-quality checks. This removes from the base any record
+    that trips an unambiguous check: an open-ocean coordinate for a terrestrial or
+    freshwater taxon (so inland-water records of a freshwater species, which sit
+    near land, are kept), null-island coordinates, latitude equal to longitude, or
+    a coordinate rounded to a whole degree. The removed records are TaxonGuard's
+    findings on the real data, returned separately so they can be reported rather
+    than silently dropped.
+
+    Removing these is what keeps the rule-based flags meaningful: a planted
+    whole-degree error and a real whole-degree record are the same signal, so a
+    clean benchmark must exclude the real ones from the plausible class rather than
+    count them as false positives. Returns (clean_base, dropped).
+    """
+    flagged = add_deterministic_flags(base, expected_realm=expected_realm)
+    drop_mask = np.zeros(len(base), dtype=bool)
+    for column in _BASE_CLEAN_FLAGS:
+        if column in flagged.columns:
+            drop_mask |= flagged[column].fillna(False).to_numpy(dtype=bool)
+
+    clean = base.loc[~drop_mask].reset_index(drop=True)
+    dropped = flagged.loc[drop_mask].reset_index(drop=True)
+    return clean, dropped
+
+
+def base_cleaning_summary(dropped: pd.DataFrame) -> dict[str, int]:
+    """Count the removed real anomalies by reason, for reporting."""
+    summary = {"total": int(len(dropped))}
+    for column in _BASE_CLEAN_FLAGS:
+        reason = column.removeprefix("det_")
+        summary[reason] = (
+            int(dropped[column].fillna(False).sum()) if column in dropped.columns else 0
+        )
+    return summary

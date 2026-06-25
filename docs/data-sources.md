@@ -29,8 +29,10 @@ requirement to abide by data licenses and to cite sources.
   assigned DOI and the exact predicate.
 - License: individual datasets carry their own licenses (commonly CC0, CC BY, or
   CC BY-NC). A GBIF download bundles the constituent dataset citations and a DOI.
-- Citation: GBIF.org occurrence download. **DOI: to be recorded here once the live
-  download is run** (it is printed by the command above and saved in the sidecar).
+- Citation: GBIF.org (2026) GBIF Occurrence Download, **DOI:
+  https://doi.org/10.15468/dl.bpfzpj** (*Rana temporaria*, Great Britain, with
+  coordinates). The enrichment applies a small coastal buffer (about 5 km) to the
+  land/sea flag so near-shore records are not misread as the open ocean.
 
 ## WorldClim 2.1 (climate)
 

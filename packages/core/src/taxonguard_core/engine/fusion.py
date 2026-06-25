@@ -14,13 +14,16 @@ poorly recorded setting contributes little. The deterministic flags keep full
 strength, because a record on null island or a land animal in the open ocean is
 implausible regardless of how much data exists.
 
-The default weights below were calibrated against a labeled evaluation benchmark
-(see :mod:`taxonguard_core.eval` and docs/evaluation.md). Calibration raised the
-environmental weight from a starting 0.8 to 0.93, which recovers borderline
-climate outliers at the operating threshold without adding false alarms; the
-deterministic weights were already at the benchmark optimum. The benchmark is
-synthetic, so the weights should be re-derived with the same harness once a
-labeled set from real GBIF records is available.
+The environmental weight below is calibrated against a labeled evaluation
+benchmark (see :mod:`taxonguard_core.eval` and docs/evaluation.md); on the
+synthetic benchmark calibration raises it from a starting 0.8 to 0.93, which
+recovers borderline climate outliers at the operating threshold without adding
+false alarms. The deterministic rule confidences are fixed domain priors and are
+not fit to the benchmark: each expresses how strongly a rule indicates an error
+(an open-ocean freshwater record is strongly implausible regardless of dataset),
+and fitting them to a small, imbalanced set would let any rule that fires on a few
+real records be zeroed to chase precision. Only the environmental weight is
+re-derived per dataset.
 
 Score a cached taxon and print its most suspicious records:
 

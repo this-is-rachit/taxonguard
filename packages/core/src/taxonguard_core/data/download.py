@@ -65,6 +65,12 @@ _DEFAULT_POLL_INTERVAL = 20.0
 _DEFAULT_MAX_WAIT = 1800.0
 _RESULT_TIMEOUT = 600.0
 
+# Coastal buffer for the real-data land/sea flag. Points within about 5 km of the
+# coast count as on land, so records that fall just offshore through coordinate
+# rounding are not misread as the open ocean (which would make the realm check
+# low precision and lead calibration to suppress it).
+DEFAULT_REAL_SEA_BUFFER_DEG = 0.05
+
 # Tidy column name -> SIMPLE_CSV column name. The download format names a few
 # columns differently from the search API (notably gbifID instead of key), so the
 # mapping is kept here rather than reusing the search-API mapping in schema.py.
@@ -387,6 +393,7 @@ def build_real_dataset(
     country: str | None = None,
     geometry: str | None = None,
     data_dir: Path | None = None,
+    sea_buffer_deg: float = DEFAULT_REAL_SEA_BUFFER_DEG,
     client: httpx.Client | None = None,
     sleep: Callable[[float], None] = time.sleep,
 ) -> tuple[pd.DataFrame, DownloadResult]:
@@ -394,9 +401,10 @@ def build_real_dataset(
 
     The returned frame matches the cached dataset shape (tidy occurrences plus
     bio_1..19 and on_land), so it drops straight into the real-data benchmark. The
-    climate and land/sea steps are imported lazily so importing this module does
-    not pull in the raster stack. Requires WorldClim and Natural Earth to be
-    downloaded already (see worldclim.py and naturalearth.py).
+    land/sea flag uses a small coastal buffer (``sea_buffer_deg``) so near-shore
+    rounding is not misread as the open ocean. The climate and land/sea steps are
+    imported lazily so importing this module does not pull in the raster stack.
+    Requires WorldClim and Natural Earth to be downloaded already.
     """
     from .enrich import enrich_with_climate
     from .landsea import add_land_sea_flag
@@ -411,7 +419,7 @@ def build_real_dataset(
         sleep=sleep,
     )
     enriched = enrich_with_climate(result.frame, data_dir=data_dir)
-    enriched = add_land_sea_flag(enriched, data_dir=data_dir)
+    enriched = add_land_sea_flag(enriched, data_dir=data_dir, sea_buffer_deg=sea_buffer_deg)
     return enriched, result
 
 

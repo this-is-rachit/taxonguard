@@ -24,7 +24,13 @@ import pandas as pd
 from ..data.worldclim import BIO_VARIABLES
 from ..engine.fusion import FusionWeights
 from ..explain.cluster import DEFAULT_MIN_SCORE
-from .benchmark import benchmark_label_counts, build_benchmark, build_real_case
+from .benchmark import (
+    base_cleaning_summary,
+    benchmark_label_counts,
+    build_benchmark,
+    build_real_case,
+    clean_base_population,
+)
 from .calibrate import calibrate, f1_at_threshold_objective
 from .metrics import (
     average_precision,
@@ -137,21 +143,33 @@ def build_real_report(
     threshold: float = DEFAULT_MIN_SCORE,
     grid_steps: int = 90,
     holdout_frac: float = 0.5,
+    errors_per_type: int = 50,
     seed: int = 0,
 ) -> dict[str, Any]:
     """Evaluate the engine on a real, DOI-backed frame with a held-out split.
 
-    The real plausible frame has the six error types planted into it, the upstream
-    signals are prepared once, and the records are split into a calibration fold
-    and a held-out report fold. The fusion weights are calibrated on the
-    calibration fold only; every headline metric is reported on the held-out fold,
-    which removes the at-threshold optimism of in-sample calibration. The
-    calibration-fold metrics are reported alongside for comparison.
+    The plausible frame is first cleaned of records that fail basic
+    coordinate-quality checks (reported separately as findings), then the six error
+    types are planted into it, the upstream signals are prepared once, and the
+    records are split into a calibration fold and a held-out report fold. Only the
+    environmental weight is calibrated, on the calibration fold; the deterministic
+    rule confidences are fixed. Every headline metric is reported on the held-out
+    fold, which removes the at-threshold optimism of in-sample calibration. Enough
+    errors are planted per type (``errors_per_type``) for the per-type recall to be
+    a meaningful estimate rather than a count of two or three.
     """
     from ..taxa import Realm
 
     realm: Realm = expected_realm  # type: ignore[assignment]
-    case = build_real_case(base, name=name, expected_realm=realm, variables=variables, seed=seed)
+    clean_base, dropped = clean_base_population(base, expected_realm=realm)
+    case = build_real_case(
+        clean_base,
+        name=name,
+        expected_realm=realm,
+        variables=variables,
+        errors_per_type=errors_per_type,
+        seed=seed,
+    )
     prepared = prepare_case(case, variables=variables)
     calib_case, holdout_case = split_prepared(prepared, holdout_frac=holdout_frac, seed=seed)
 
@@ -179,6 +197,11 @@ def build_real_report(
         "doi": doi,
         "seed": seed,
         "holdout_frac": holdout_frac,
+        "errors_per_type": errors_per_type,
+        "base_cleaning": {
+            **base_cleaning_summary(dropped),
+            "plausible_kept": int(len(clean_base)),
+        },
         "fold_counts": {
             "calibration": fold_counts(calib_case),
             "holdout": fold_counts(holdout_case),
@@ -203,11 +226,18 @@ def _format_real_report(report: dict[str, Any]) -> str:
     hold = report["holdout"]
     hold_start = report["holdout_starting"]
     calib_fold = report["calibration_fold"]
+    clean = report["base_cleaning"]
     lines = [
         "TaxonGuard evaluation (real GBIF data, held-out split)",
         "======================================================",
         f"taxon: {report['taxon']}   DOI: {report['doi'] or 'not recorded'}   "
         f"seed {report['seed']}",
+        f"real anomalies removed from the plausible class before planting: "
+        f"{clean['total']} "
+        f"(open-ocean {clean.get('realm_mismatch', 0)}, "
+        f"null-island {clean.get('zero_coordinates', 0)}, "
+        f"lat=lon {clean.get('equal_coordinates', 0)}); "
+        f"{clean['plausible_kept']} verified-plausible records kept",
         f"calibration fold: {folds['calibration']['total']} records "
         f"({folds['calibration']['plausible']} plausible, "
         f"{folds['calibration']['suspicious']} planted errors)",
@@ -235,10 +265,12 @@ def _format_real_report(report: dict[str, Any]) -> str:
         f"{cal['starting_weights']['environmental']:g} -> "
         f"{cal['calibrated_weights']['environmental']:g}",
         "",
-        "held-out per-error-type recall at the operating threshold (calibrated):",
+        "held-out per-error-type recall  (principled weights -> calibrated):",
     ]
+    starting_recall = hold_start["per_type_recall_at_threshold"]
     for kind, value in hold["per_type_recall_at_threshold"].items():
-        lines.append(f"  {kind:<12} {value:.3f}")
+        start_value = starting_recall.get(kind, float("nan"))
+        lines.append(f"  {kind:<12} {start_value:.3f} -> {value:.3f}")
     return "\n".join(lines)
 
 
@@ -381,8 +413,14 @@ def render_real_figure(
     from ..taxa import Realm
 
     realm: Realm = expected_realm  # type: ignore[assignment]
+    clean_base, _ = clean_base_population(base, expected_realm=realm)
     case = build_real_case(
-        base, name=name, expected_realm=realm, variables=variables, seed=report["seed"]
+        clean_base,
+        name=name,
+        expected_realm=realm,
+        variables=variables,
+        errors_per_type=int(report.get("errors_per_type", 50)),
+        seed=report["seed"],
     )
     prepared = prepare_case(case, variables=variables)
     _, holdout_case = split_prepared(
