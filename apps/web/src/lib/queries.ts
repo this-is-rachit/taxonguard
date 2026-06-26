@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  type AnnotateRequest,
+  type AnnotateResponse,
   type CleanReport,
   type ClusterDetail,
   type ClusterSummary,
@@ -14,6 +16,7 @@ import {
   getCluster,
   getClusters,
   getTaxa,
+  postAnnotate,
   postCleanUpload,
   postDecision,
   scoreTaxon,
@@ -72,5 +75,11 @@ export function useSpeciesScore(taxon: string | null) {
     enabled: taxon !== null,
     staleTime: Infinity,
     retry: false,
+  });
+}
+
+export function useAnnotate() {
+  return useMutation<AnnotateResponse, Error, AnnotateRequest>({
+    mutationFn: (body: AnnotateRequest) => postAnnotate(body),
   });
 }

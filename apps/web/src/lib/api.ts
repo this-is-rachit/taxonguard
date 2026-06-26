@@ -116,6 +116,27 @@ export interface SpeciesScoreReport {
   records_truncated: boolean;
 }
 
+export interface AnnotatePoint {
+  latitude: number;
+  longitude: number;
+}
+
+export interface AnnotateRequest {
+  taxon: string;
+  points: AnnotatePoint[];
+  value?: string;
+}
+
+export interface AnnotateResponse {
+  submitted: boolean;
+  rule: RuleOut;
+  written_to_gbif: boolean;
+  annotation_id?: number | null;
+  annotation_url?: string | null;
+  manual_instructions?: string | null;
+  detail?: string | null;
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -202,6 +223,16 @@ export function scoreTaxon(taxon: string): Promise<SpeciesScoreReport> {
   return request<SpeciesScoreReport>(
     `/score?taxon=${encodeURIComponent(taxon)}`,
   );
+}
+
+// Draft a rule over the flagged records and write it back to GBIF. With GBIF
+// credentials configured the rule is posted to the experimental annotation API;
+// without them the response carries manual copy-and-paste instructions.
+export function postAnnotate(body: AnnotateRequest): Promise<AnnotateResponse> {
+  return request<AnnotateResponse>("/annotate", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export { ApiError };

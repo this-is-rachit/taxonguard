@@ -1,13 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { type MapPoint, RecordsMap } from "@/components/explore/RecordsMap";
+import { WriteBackResult } from "@/components/explore/WriteBackResult";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { SuspicionMeter } from "@/components/ui/SuspicionMeter";
 import { EmptyState } from "@/components/ui/States";
 import { type CleanRecord, type CleanSummary } from "@/lib/api";
 import { type LngLat, pointInPolygon } from "@/lib/geo";
+import { useAnnotate } from "@/lib/queries";
 import { REASON_META, reasonLabel } from "@/lib/reasons";
 
 const REASON_ORDER = [
@@ -311,18 +314,21 @@ export function RecordsExplorer({
   taxonLabel,
   truncated = false,
   showTaxon = false,
+  annotateTaxon,
 }: {
   records: CleanRecord[];
   summary: CleanSummary;
   taxonLabel?: string;
   truncated?: boolean;
   showTaxon?: boolean;
+  annotateTaxon?: string;
 }) {
   const [minScore, setMinScore] = useState(0.5);
   const [activeReasons, setActiveReasons] = useState<Set<string>>(new Set());
   const [view, setView] = useState<View>("table");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [polygon, setPolygon] = useState<LngLat[] | null>(null);
+  const annotate = useAnnotate();
 
   const keyed = useMemo(
     () =>
@@ -379,6 +385,18 @@ export function RecordsExplorer({
       return next;
     });
   }
+
+  const { reset: resetAnnotate } = annotate;
+  // Clear a previous proposal whenever the filtered set changes, so the result
+  // shown always matches the records currently in view.
+  useEffect(() => {
+    resetAnnotate();
+  }, [resetAnnotate, minScore, activeReasons, polygon]);
+
+  const annotatePoints = filtered.map(({ record }) => ({
+    latitude: record.latitude,
+    longitude: record.longitude,
+  }));
 
   return (
     <div className="mt-6 flex flex-col gap-6 md:flex-row">
@@ -437,6 +455,56 @@ export function RecordsExplorer({
             ))}
           </div>
         </div>
+
+        {annotateTaxon ? (
+          <div className="mt-3 rounded-lg border border-hairline bg-panel p-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted">
+              Write back to GBIF
+            </p>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              Propose a rule marking the {filtered.length} record
+              {filtered.length === 1 ? "" : "s"} shown as{" "}
+              <span className="font-bold text-ink">suspicious</span>, over the
+              area they cover. With GBIF credentials this is published to
+              GBIF&apos;s annotation system; without them you get the exact rule
+              to create by hand.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() =>
+                  annotate.mutate({
+                    taxon: annotateTaxon,
+                    points: annotatePoints,
+                  })
+                }
+                disabled={annotatePoints.length === 0 || annotate.isPending}
+              >
+                {annotate.isPending ? "Proposing..." : "Propose a GBIF rule"}
+              </Button>
+              {annotatePoints.length === 0 ? (
+                <span className="text-xs text-muted">
+                  Adjust the filters to include at least one record.
+                </span>
+              ) : null}
+            </div>
+            {annotate.isError ? (
+              <p className="mt-2 text-sm text-error">
+                Could not propose the rule. Check that the API is running and
+                try again.
+              </p>
+            ) : null}
+            {annotate.data ? (
+              <div className="mt-3">
+                <WriteBackResult
+                  written={annotate.data.written_to_gbif}
+                  annotationUrl={annotate.data.annotation_url}
+                  manualInstructions={annotate.data.manual_instructions}
+                  detail={annotate.data.detail}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mt-3">
           {view === "summary" ? (

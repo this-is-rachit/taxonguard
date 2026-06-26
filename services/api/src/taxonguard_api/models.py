@@ -134,3 +134,40 @@ class SpeciesScoreReport(BaseModel):
     records_truncated: bool = Field(
         description="True when more records were scored than are listed here."
     )
+
+
+class AnnotatePoint(BaseModel):
+    latitude: float
+    longitude: float
+
+
+class AnnotateRequest(BaseModel):
+    """A request to draft a rule over flagged records and write it back to GBIF.
+
+    The points are the coordinates of the records the rule should cover (the
+    currently filtered, suspicious records on the Explore screen). The server
+    builds the rule polygon from them, so geometry construction stays in one
+    tested place in the core.
+    """
+
+    taxon: str
+    points: list[AnnotatePoint] = Field(
+        description="Coordinates of the flagged records the rule should cover."
+    )
+    value: str = Field(
+        default="suspicious",
+        description="Controlled-vocabulary annotation value. Defaults to suspicious.",
+    )
+
+
+class AnnotateResponse(BaseModel):
+    """The outcome of drafting a rule and attempting to write it back to GBIF."""
+
+    submitted: bool
+    rule: RuleOut
+    written_to_gbif: bool = False
+    annotation_id: int | None = None
+    annotation_url: str | None = None
+    # Set when write-back is not enabled, so the reviewer can create the rule by hand.
+    manual_instructions: str | None = None
+    detail: str | None = None

@@ -13,8 +13,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
+from .annotate_service import AnnotationSubmitService
 from .clean_service import CleanNotFoundError, CleanService, UploadError
 from .models import (
+    AnnotateRequest,
+    AnnotateResponse,
     CleanReport,
     ClusterDetail,
     ClusterSummary,
@@ -51,9 +54,16 @@ def get_score_service() -> TaxonScoreService:
     return TaxonScoreService()
 
 
+@lru_cache(maxsize=1)
+def get_annotation_service() -> AnnotationSubmitService:
+    """Return the process-wide annotation submit service (Explore write-back)."""
+    return AnnotationSubmitService()
+
+
 ServiceDep = Annotated[ClusterService, Depends(get_service)]
 CleanServiceDep = Annotated[CleanService, Depends(get_clean_service)]
 ScoreServiceDep = Annotated[TaxonScoreService, Depends(get_score_service)]
+AnnotationServiceDep = Annotated[AnnotationSubmitService, Depends(get_annotation_service)]
 
 router = APIRouter()
 
@@ -137,3 +147,24 @@ def score_species(service: ScoreServiceDep, taxon: str) -> SpeciesScoreReport:
         return service.score(taxon)
     except SpeciesScoreError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
+
+
+@router.post("/annotate", response_model=AnnotateResponse)
+def annotate(request: AnnotateRequest, service: AnnotationServiceDep) -> AnnotateResponse:
+    """Draft a rule over the flagged records and write it back to GBIF.
+
+    Used by the Explore screen to publish a rule for any species the user has
+    searched and filtered. The rule polygon is built from the supplied points; with
+    GBIF credentials configured the rule is posted to the experimental annotation
+    API, and without them the response carries manual copy-and-paste instructions.
+    """
+    if not request.taxon.strip():
+        raise HTTPException(status_code=400, detail="A taxon name is required.")
+    if not request.points:
+        raise HTTPException(
+            status_code=400, detail="At least one flagged record is required to propose a rule."
+        )
+    try:
+        return service.submit(taxon=request.taxon, points=request.points, value=request.value)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error

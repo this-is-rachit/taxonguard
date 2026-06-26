@@ -189,6 +189,7 @@ export default function ExplorePage() {
               summary={score.data.summary}
               taxonLabel={score.data.taxon}
               truncated={score.data.records_truncated}
+              annotateTaxon={score.data.taxon}
             />
           )
         ) : null}

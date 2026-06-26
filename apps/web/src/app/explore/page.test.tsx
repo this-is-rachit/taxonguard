@@ -15,6 +15,7 @@ import ExplorePage from "./page";
 vi.mock("@/lib/api", () => ({
   suggestSpecies: vi.fn(),
   scoreTaxon: vi.fn(),
+  postAnnotate: vi.fn(),
 }));
 
 vi.mock("@/components/explore/RecordsMap", () => ({
