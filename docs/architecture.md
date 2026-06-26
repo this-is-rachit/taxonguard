@@ -35,7 +35,7 @@ the API service, and the web app.
 - `apps/web` is the Next.js, TypeScript, and Tailwind frontend.
 - `design/` holds `gbif_dark_atlas.md`, the design source of truth.
 - `infra/` holds the Dockerfiles and the single Compose file.
-- `docs/` holds architecture, compliance, and operating instructions.
+- `docs/` holds architecture, data sources, evaluation, and operating instructions.
 
 ## Python workspace
 
