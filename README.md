@@ -36,6 +36,7 @@ language-model key, so the tool runs at no cost.
 | `design/` | `gbif_dark_atlas.md`, the frontend design source of truth. |
 | `docs/` | Architecture, compliance, and operating instructions. |
 | `infra/` | Dockerfiles and the single Docker Compose file. |
+| `notebooks/` | A reproducible, keyless notebook that runs the whole loop end to end. |
 
 ## Requirements
 
@@ -62,6 +63,17 @@ npm run dev
 
 Then open http://localhost:3000. Other scripts: `npm run build`,
 `npm run lint`, `npm run typecheck`, `npm run test`.
+
+## Reproducible notebook
+
+`notebooks/taxonguard_demo.ipynb` runs the whole loop end to end (detect, explain,
+draft a rule, write back) across several taxa. It needs no account and no
+downloaded data: with neither present it uses a labeled synthetic fallback, so it
+is reproducible offline, and it uses real GBIF data automatically when a cache is
+built. Run it with `uv run jupyter notebook notebooks/taxonguard_demo.ipynb`, or
+headlessly with
+`uv run jupyter nbconvert --to notebook --execute notebooks/taxonguard_demo.ipynb --output-dir /tmp`.
+See `notebooks/README.md`.
 
 ## License
 

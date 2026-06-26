@@ -63,6 +63,28 @@ Web (from `apps/web`): `npm run lint`, `npm run format:check`,
 `npm run typecheck`, `npm run test`, and `npm run e2e` (requires
 `npx playwright install chromium` once).
 
+## Reproducible notebook
+
+`notebooks/taxonguard_demo.ipynb` runs the entire detect, explain, expert-confirm,
+and write-back loop end to end across several taxa, and doubles as a single,
+runnable demonstration. It requires no account and no downloaded data: when
+neither is present it falls back to a labeled synthetic dataset, so it is
+reproducible offline, and it uses real GBIF data automatically once a cache is
+built (`uv run python -m taxonguard_core.data.cache "Rana temporaria"`). Run it:
+
+```bash
+uv run jupyter notebook notebooks/taxonguard_demo.ipynb
+```
+
+Or execute it headlessly, exactly as CI does:
+
+```bash
+uv run jupyter nbconvert --to notebook --execute \
+    notebooks/taxonguard_demo.ipynb --output-dir /tmp
+```
+
+See `notebooks/README.md` for the real-data and write-back options.
+
 ## Configuration
 
 Settings are read from environment variables with the prefix `TAXONGUARD_`.

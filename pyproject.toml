@@ -26,12 +26,20 @@ dev = [
     "httpx>=0.27",
     "pandas-stubs>=2.2",
     "matplotlib>=3.8",
+    "jupyter>=1.1",
+    "nbconvert>=7.16",
+    "nbclient>=0.10",
+    "ipykernel>=6.29",
 ]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 src = ["packages/core/src", "services/api/src"]
+# Demonstration notebooks are exercised by execution in CI, not by the library
+# lint rules. Excluding them keeps `ruff check .` and `ruff format --check .`
+# deterministic across Ruff versions (Ruff lints and formats .ipynb by default).
+extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

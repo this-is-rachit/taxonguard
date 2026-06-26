@@ -36,6 +36,13 @@ jobs:
       - name: pytest
         run: uv run pytest
 
+      - name: Execute the reproducible notebook (offline, keyless)
+        run: |
+          uv run python -m ipykernel install --user --name python3
+          uv run jupyter nbconvert --to notebook --execute \
+            --ExecutePreprocessor.timeout=600 \
+            notebooks/taxonguard_demo.ipynb --output-dir "${{ runner.temp }}"
+
   web:
     name: Web (Next.js)
     runs-on: ubuntu-latest
