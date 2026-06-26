@@ -12,6 +12,14 @@ services:
       - "8000:8000"
     environment:
       TAXONGUARD_CORS_ORIGINS: '["http://localhost:3000"]'
+    # Mounts the host's data directory (WorldClim rasters and Natural Earth land
+    # polygons) so on-demand scoring can run the climate and land/sea checks.
+    # Download it once on the host with:
+    #   uv run python -m taxonguard_core.data.worldclim --download
+    #   uv run python -m taxonguard_core.data.naturalearth --download
+    # Without it, only the coordinate-quality checks have what they need.
+    volumes:
+      - ../data:/app/data
     healthcheck:
       test:
         [

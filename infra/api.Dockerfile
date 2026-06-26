@@ -11,6 +11,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# System libraries that rasterio/GDAL's bundled wheels load at runtime but that
+# the slim base image omits. libexpat1 provides libexpat.so.1, which GDAL links.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libexpat1 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy the workspace and install runtime dependencies from the frozen lockfile.
 COPY pyproject.toml uv.lock README.md ./
 COPY packages ./packages
