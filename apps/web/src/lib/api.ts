@@ -7,12 +7,6 @@ export const API_BASE_URL =
 
 export type DecisionAction = "confirm" | "reject" | "refine";
 
-export interface TaxonSummary {
-  taxon: string;
-  cluster_count: number;
-  flagged_records: number;
-}
-
 export interface DecisionState {
   action: DecisionAction;
   value: string | null;
@@ -156,10 +150,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, `Request failed: ${response.status}`);
   }
   return (await response.json()) as T;
-}
-
-export function getTaxa(): Promise<TaxonSummary[]> {
-  return request<TaxonSummary[]>("/taxa");
 }
 
 export function getClusters(taxon?: string): Promise<ClusterSummary[]> {

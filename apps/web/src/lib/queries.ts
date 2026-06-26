@@ -12,20 +12,14 @@ import {
   type DecisionResponse,
   type SpeciesScoreReport,
   type SpeciesSuggestion,
-  type TaxonSummary,
   getCluster,
   getClusters,
-  getTaxa,
   postAnnotate,
   postCleanUpload,
   postDecision,
   scoreTaxon,
   suggestSpecies,
 } from "./api";
-
-export function useTaxa() {
-  return useQuery<TaxonSummary[]>({ queryKey: ["taxa"], queryFn: getTaxa });
-}
 
 export function useClusters(taxon?: string) {
   return useQuery<ClusterSummary[]>({

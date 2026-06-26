@@ -3,11 +3,13 @@
 The six noisy-OR weights are tuned by coordinate descent: starting from the
 principled defaults, each weight is swept over a bounded grid while the others
 are held, the value that most improves the objective is kept, and the pass
-repeats until it stops improving. The objective defaults to average precision
-(area under the precision-recall curve), a threshold-independent measure of how
-well the suspicion score separates planted errors from plausible records under
-the benchmark's class imbalance. Calibration uses the prepared (cached) signals,
-so each evaluation only re-runs the cheap fusion step.
+repeats until it stops improving. The objective defaults to F1 at the operating
+threshold the product decides at, which is what the weights genuinely affect:
+the weights set the absolute score scale, so they determine whether each error
+type clears the threshold while plausible records stay below it. Ranking
+objectives (AUC, average precision) are largely insensitive to the weights,
+because the weights scale the scores monotonically. Calibration uses the
+prepared (cached) signals, so each evaluation only re-runs the cheap fusion step.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from dataclasses import dataclass, replace
 import numpy as np
 
 from ..engine.fusion import FusionWeights
+from ..explain.cluster import DEFAULT_MIN_SCORE
 from .metrics import average_precision, metrics_at
 from .scoring import PreparedCase, fuse_prepared, labels_are_suspicious, suspicion_scores
 
@@ -85,6 +88,13 @@ def f1_at_threshold_objective(threshold: float) -> Objective:
     return objective
 
 
+# The default objective and its name. Because the weights set the score scale, F1
+# at the product's operating threshold is what they genuinely move; this matches
+# the objective the evaluation entry point (eval.run) calibrates against.
+DEFAULT_OBJECTIVE: Objective = f1_at_threshold_objective(DEFAULT_MIN_SCORE)
+DEFAULT_OBJECTIVE_NAME: str = f"f1@{DEFAULT_MIN_SCORE:g}"
+
+
 def evaluate_weights(
     prepared: Sequence[PreparedCase],
     weights: FusionWeights,
@@ -98,8 +108,8 @@ def evaluate_weights(
 def calibrate(
     prepared: Sequence[PreparedCase],
     *,
-    objective: Objective = average_precision_objective,
-    objective_name: str = "average_precision",
+    objective: Objective = DEFAULT_OBJECTIVE,
+    objective_name: str = DEFAULT_OBJECTIVE_NAME,
     start: FusionWeights | None = None,
     bounds: tuple[float, float] = DEFAULT_BOUNDS,
     grid_steps: int = DEFAULT_GRID_STEPS,

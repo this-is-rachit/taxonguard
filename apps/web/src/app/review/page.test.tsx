@@ -22,7 +22,6 @@ import ReviewPage from "./page";
 vi.mock("@/lib/api", () => ({
   getClusters: vi.fn(),
   getCluster: vi.fn(),
-  getTaxa: vi.fn(),
   postDecision: vi.fn(),
 }));
 
