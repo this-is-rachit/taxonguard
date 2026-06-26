@@ -1,3 +1,4 @@
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { WelcomeTour } from "@/components/tour/WelcomeTour";
 
@@ -38,10 +39,10 @@ const HOW_TO = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white text-ink">
+    <div className="flex min-h-screen flex-col bg-white text-ink">
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6">
         <section className="pt-16">
           <p className="text-sm font-bold uppercase tracking-wide text-primary">
             GBIF Ebbe Nielsen Challenge
@@ -152,12 +153,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-hairline">
-        <div className="mx-auto flex h-16 max-w-6xl items-center px-6 text-sm text-muted">
-          Open source under the MIT license. An entry for the GBIF Ebbe Nielsen
-          Challenge.
-        </div>
-      </footer>
+      <SiteFooter />
 
       <WelcomeTour />
     </div>

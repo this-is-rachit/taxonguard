@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
@@ -27,10 +28,10 @@ function Section({
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white text-ink">
+    <div className="flex min-h-screen flex-col bg-white text-ink">
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-6 pb-20">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 pb-20">
         <section className="max-w-3xl pt-12">
           <p className="text-sm font-bold uppercase tracking-wide text-primary">
             About
@@ -177,12 +178,7 @@ export default function AboutPage() {
         </section>
       </main>
 
-      <footer className="border-t border-hairline">
-        <div className="mx-auto flex h-16 max-w-6xl items-center px-6 text-sm text-muted">
-          Open source under the MIT license. An entry for the GBIF Ebbe Nielsen
-          Challenge.
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
 import { type MapPoint, RecordsMap } from "@/components/explore/RecordsMap";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ClusterActions } from "@/components/review/ClusterActions";
 import { ClusterListItem } from "@/components/review/ClusterListItem";
@@ -159,10 +160,10 @@ export default function ReviewPage() {
     query.trim() !== "" || activeReasons.size > 0 || status !== "all";
 
   return (
-    <div className="min-h-screen bg-white text-ink">
+    <div className="flex min-h-screen flex-col bg-white text-ink">
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-6 py-md">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-md">
         <h1 className="text-3xl font-semibold tracking-tight text-ink">
           Review flagged clusters
         </h1>
@@ -311,6 +312,8 @@ export default function ReviewPage() {
           </section>
         </div>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

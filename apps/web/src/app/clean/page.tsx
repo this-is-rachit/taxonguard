@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { RecordsExplorer } from "@/components/explore/RecordsExplorer";
 import { Button } from "@/components/ui/Button";
@@ -118,10 +119,10 @@ export default function CleanPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white text-ink">
+    <div className="flex min-h-screen flex-col bg-white text-ink">
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-6 pb-20">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 pb-20">
         <section className="pt-12">
           <h1 className="text-3xl font-semibold tracking-tight text-ink">
             Clean my data
@@ -182,12 +183,7 @@ export default function CleanPage() {
         {upload.data ? <Results report={upload.data} /> : null}
       </main>
 
-      <footer className="border-t border-hairline">
-        <div className="mx-auto flex h-16 max-w-6xl items-center px-6 text-sm text-muted">
-          Open source under the MIT license. An entry for the GBIF Ebbe Nielsen
-          Challenge.
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
