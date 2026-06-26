@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -20,8 +26,8 @@ vi.mock("@/lib/api", () => ({
   postDecision: vi.fn(),
 }));
 
-vi.mock("@/components/review/ClusterMap", () => ({
-  ClusterMap: () => <div data-testid="cluster-map" />,
+vi.mock("@/components/explore/RecordsMap", () => ({
+  RecordsMap: () => <div data-testid="records-map" />,
 }));
 
 const SUMMARY: ClusterSummary = {
@@ -79,7 +85,9 @@ describe("Review page", () => {
     vi.mocked(getClusters).mockResolvedValue([SUMMARY]);
     renderPage();
     expect(await screen.findByText("Rana temporaria")).toBeInTheDocument();
-    expect(screen.getByText("Land/sea mismatch")).toBeInTheDocument();
+    // The reason label also appears as a filter chip, so scope to the list.
+    const list = screen.getByRole("region", { name: "Flagged clusters" });
+    expect(within(list).getByText("Land/sea mismatch")).toBeInTheDocument();
   });
 
   it("shows the draft rule when a cluster is selected", async () => {

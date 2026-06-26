@@ -1,19 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Logo } from "@/components/Logo";
+import { SiteHeader } from "@/components/SiteHeader";
 import { RecordsExplorer } from "@/components/explore/RecordsExplorer";
 import { Button } from "@/components/ui/Button";
 import { ErrorState, LoadingState } from "@/components/ui/States";
 import { useSpeciesScore, useSpeciesSuggest } from "@/lib/queries";
-
-const NAV = [
-  { label: "Explore", href: "/explore" },
-  { label: "Review", href: "/review" },
-  { label: "Clean my data", href: "/clean" },
-];
 
 const EXAMPLES = [
   "Rana temporaria",
@@ -107,29 +100,7 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-white text-ink">
-      <header className="border-b border-hairline">
-        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Logo />
-          <ul className="hidden items-center gap-8 md:flex">
-            {NAV.map((item) => (
-              <li key={item.label}>
-                <Link
-                  href={item.href}
-                  className="text-sm font-bold text-ink hover:text-primary"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <a
-            href="https://github.com/this-is-rachit/taxonguard"
-            className="rounded-md border border-hairline px-5 py-2 text-sm font-bold text-ink hover:border-primary hover:text-primary"
-          >
-            View on GitHub
-          </a>
-        </nav>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-6 pb-20">
         <section className="pt-12">

@@ -92,12 +92,14 @@ export function RecordsMap({
   onSelect,
   polygon = null,
   onPolygonChange,
+  ariaLabel = "Map of flagged records",
 }: {
   points: MapPoint[];
   selectedKey: string | null;
   onSelect: (key: string) => void;
   polygon?: LngLat[] | null;
   onPolygonChange?: (polygon: LngLat[] | null) => void;
+  ariaLabel?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -255,7 +257,7 @@ export function RecordsMap({
         ref={containerRef}
         className="h-[28rem] w-full overflow-hidden rounded-lg border border-hairline"
         role="region"
-        aria-label="Map of flagged records"
+        aria-label={ariaLabel}
       />
       {onPolygonChange ? (
         <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-2">

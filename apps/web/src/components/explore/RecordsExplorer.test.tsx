@@ -100,7 +100,7 @@ describe("RecordsExplorer write-back", () => {
       screen.getByRole("button", { name: "Propose a GBIF rule" }),
     );
 
-    expect(await screen.findByText(/Published to GBIF/)).toBeInTheDocument();
+    expect(await screen.findByText(/Written to GBIF/)).toBeInTheDocument();
     await waitFor(() =>
       expect(postAnnotate).toHaveBeenCalledWith({
         taxon: "Rana temporaria",

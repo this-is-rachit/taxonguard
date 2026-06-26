@@ -1,17 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { Logo } from "@/components/Logo";
+import { type MapPoint, RecordsMap } from "@/components/explore/RecordsMap";
+import { SiteHeader } from "@/components/SiteHeader";
 import { ClusterActions } from "@/components/review/ClusterActions";
 import { ClusterListItem } from "@/components/review/ClusterListItem";
-import { ClusterMap } from "@/components/review/ClusterMap";
 import { Badge } from "@/components/ui/Badge";
 import { SuspicionMeter } from "@/components/ui/SuspicionMeter";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { reasonLabel } from "@/lib/reasons";
 import { useCluster, useClusters } from "@/lib/queries";
+
+const REASON_ORDER = [
+  "realm_mismatch",
+  "zero_coordinates",
+  "equal_coordinates",
+  "gridded_coordinates",
+  "institution_coordinates",
+  "environmental_outlier",
+];
+
+type ReviewStatus = "all" | "undecided" | "confirm" | "reject" | "refine";
 
 function ClusterDetailPanel({ clusterId }: { clusterId: string }) {
   const { data, isLoading, isError, refetch } = useCluster(clusterId);
@@ -82,22 +93,73 @@ function ClusterDetailPanel({ clusterId }: { clusterId: string }) {
 
 export default function ReviewPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [activeReasons, setActiveReasons] = useState<Set<string>>(new Set());
+  const [status, setStatus] = useState<ReviewStatus>("all");
   const { data: clusters, isLoading, isError, refetch } = useClusters();
   const handleSelect = useCallback((id: string) => setSelectedId(id), []);
 
+  const all = useMemo(() => clusters ?? [], [clusters]);
+
+  const presentReasons = useMemo(() => {
+    const set = new Set<string>();
+    for (const cluster of all) {
+      for (const code of Object.keys(cluster.reason_counts)) set.add(code);
+    }
+    return REASON_ORDER.filter((code) => set.has(code));
+  }, [all]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return all.filter((cluster) => {
+      if (q && !cluster.taxon.toLowerCase().includes(q)) return false;
+      if (
+        activeReasons.size > 0 &&
+        !Object.keys(cluster.reason_counts).some((code) =>
+          activeReasons.has(code),
+        )
+      ) {
+        return false;
+      }
+      if (status === "undecided" && cluster.decision) return false;
+      if (
+        status !== "all" &&
+        status !== "undecided" &&
+        cluster.decision?.action !== status
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [all, query, activeReasons, status]);
+
+  const points: MapPoint[] = useMemo(
+    () =>
+      filtered.map((cluster) => ({
+        key: cluster.cluster_id,
+        latitude: cluster.latitude,
+        longitude: cluster.longitude,
+        score: cluster.max_score,
+        label: `${cluster.taxon} (${cluster.max_score.toFixed(2)})`,
+      })),
+    [filtered],
+  );
+
+  function toggleReason(code: string) {
+    setActiveReasons((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  }
+
+  const hasFilters =
+    query.trim() !== "" || activeReasons.size > 0 || status !== "all";
+
   return (
     <div className="min-h-screen bg-white text-ink">
-      <header className="border-b border-hairline">
-        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Logo />
-          <Link
-            href="/"
-            className="text-sm font-bold text-ink hover:text-primary"
-          >
-            Home
-          </Link>
-        </nav>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-md">
         <h1 className="text-3xl font-semibold tracking-tight text-ink">
@@ -106,14 +168,92 @@ export default function ReviewPage() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
           Each cluster groups nearby flagged records of one taxon. Pick one on
           the map or in the list to see its records and the draft rule it would
-          write back to GBIF.
+          write back to GBIF. Looking for a species that is not listed here?{" "}
+          <Link
+            href="/explore"
+            className="font-bold text-primary hover:underline"
+          >
+            Search any species in Explore
+          </Link>
+          .
         </p>
 
+        <div className="mt-md rounded-lg border border-hairline bg-white p-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter by species name"
+              aria-label="Filter clusters by species"
+              className="w-full rounded-md border border-hairline px-3 py-2 text-sm text-ink outline-none focus:border-secondary sm:w-64"
+            />
+            <label htmlFor="review-status" className="sr-only">
+              Filter by decision status
+            </label>
+            <select
+              id="review-status"
+              value={status}
+              onChange={(event) =>
+                setStatus(event.target.value as ReviewStatus)
+              }
+              className="rounded-md border border-hairline px-3 py-2 text-sm text-ink outline-none focus:border-secondary"
+            >
+              <option value="all">All decisions</option>
+              <option value="undecided">Undecided</option>
+              <option value="confirm">Confirmed</option>
+              <option value="reject">Rejected</option>
+              <option value="refine">Refined</option>
+            </select>
+            <span className="text-xs text-muted">
+              {filtered.length} of {all.length} cluster
+              {all.length === 1 ? "" : "s"}
+            </span>
+            {hasFilters ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setActiveReasons(new Set());
+                  setStatus("all");
+                }}
+                className="text-xs font-bold text-primary hover:underline"
+              >
+                Reset
+              </button>
+            ) : null}
+          </div>
+
+          {presentReasons.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {presentReasons.map((code) => {
+                const active = activeReasons.has(code);
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => toggleReason(code)}
+                    className={`rounded-md border px-2.5 py-1 text-xs font-bold ${
+                      active
+                        ? "border-secondary bg-secondary/5 text-ink"
+                        : "border-hairline text-muted hover:border-primary"
+                    }`}
+                  >
+                    {reasonLabel(code)}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
         <div className="mt-md">
-          <ClusterMap
-            clusters={clusters ?? []}
-            selectedId={selectedId}
+          <RecordsMap
+            points={points}
+            selectedKey={selectedId}
             onSelect={handleSelect}
+            ariaLabel="Map of flagged clusters"
           />
         </div>
 
@@ -124,13 +264,19 @@ export default function ReviewPage() {
           >
             {isLoading ? <LoadingState label="Loading clusters" /> : null}
             {isError ? <ErrorState onRetry={() => refetch()} /> : null}
-            {clusters && clusters.length === 0 ? (
+            {clusters && all.length === 0 ? (
               <EmptyState
                 title="No flagged clusters"
                 hint="Build a taxon cache and start the API to see results here."
               />
             ) : null}
-            {clusters?.map((cluster) => (
+            {clusters && all.length > 0 && filtered.length === 0 ? (
+              <EmptyState
+                title="No clusters match these filters"
+                hint="Clear the species filter, the reason filters, or the decision status."
+              />
+            ) : null}
+            {filtered.map((cluster) => (
               <ClusterListItem
                 key={cluster.cluster_id}
                 cluster={cluster}

@@ -1,8 +1,8 @@
 // Shows the outcome of writing a rule back to GBIF, in one consistent place.
-// Used by the Explore "propose a rule" action; the Review screen will share it
-// too. The copy is plain and explains the no-credentials case, so a reviewer
-// without a GBIF account understands why a rule was not published rather than
-// seeing a silent failure.
+// Shared by the Explore "propose a rule" action and the Review decision panel, so
+// both screens describe the result the same way. The copy explains the
+// no-credentials case, so a reviewer without a GBIF account understands why a rule
+// was not published rather than seeing a silent failure.
 
 export function WriteBackResult({
   written,
@@ -17,8 +17,8 @@ export function WriteBackResult({
 }) {
   if (written) {
     return (
-      <p className="text-sm text-muted" aria-live="polite">
-        Published to GBIF as a suspicious-records rule.
+      <div className="text-muted">
+        Written to GBIF.
         {annotationUrl ? (
           <>
             {" "}
@@ -32,21 +32,24 @@ export function WriteBackResult({
             </a>
           </>
         ) : null}
-      </p>
+      </div>
     );
   }
 
   return (
-    <div className="text-sm text-muted" aria-live="polite">
-      <p>
+    <div className="text-muted">
+      <span>
+        Not yet written to GBIF
         {manualInstructions
-          ? "This rule was not published, because no GBIF credentials are configured. You can create it by hand:"
-          : (detail ?? "This rule was not published.")}
-      </p>
+          ? ", because no GBIF credentials are configured."
+          : detail
+            ? `. ${detail}`
+            : "."}
+      </span>
       {manualInstructions ? (
         <details className="mt-2">
           <summary className="cursor-pointer font-bold text-ink">
-            Show the rule to create manually
+            Create this rule manually
           </summary>
           <pre className="mt-2 whitespace-pre-wrap break-all rounded-md border border-hairline bg-panel p-2 font-mono text-xs text-ink">
             {manualInstructions}

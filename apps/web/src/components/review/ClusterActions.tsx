@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 
+import { WriteBackResult } from "@/components/explore/WriteBackResult";
+import { Button } from "@/components/ui/Button";
 import { type DecisionState } from "@/lib/api";
 import { useDecision } from "@/lib/queries";
-import { Button } from "@/components/ui/Button";
 
 // Confirm, reject, or refine a cluster's draft rule. The decision is recorded by
 // the API, which writes a confirmed rule back to GBIF when credentials are set;
-// the status makes the "written to GBIF" or "recorded, not yet written" state
-// explicit.
+// the shared WriteBackResult makes the "written to GBIF" or "not yet written"
+// state explicit, the same way the Explore screen does.
 export function ClusterActions({
   clusterId,
   decision,
@@ -64,51 +65,27 @@ export function ClusterActions({
 
       <div aria-live="polite" className="mt-3 text-sm">
         {mutation.isError ? (
-          <span className="text-error">
+          <p className="text-error">
             Could not record the decision. Try again.
-          </span>
+          </p>
         ) : null}
         {decision ? (
-          decision.written_to_gbif ? (
-            <span className="text-muted">
+          <>
+            <p className="text-muted">
               Recorded:{" "}
               <span className="font-bold text-ink">{decision.action}</span>
-              {decision.value ? ` (${decision.value})` : ""}. Written to GBIF
-              {decision.annotation_url ? (
-                <>
-                  {" "}
-                  <a
-                    href={decision.annotation_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-bold text-primary hover:underline"
-                  >
-                    View the annotation
-                  </a>
-                </>
-              ) : null}
-              .
-            </span>
-          ) : (
-            <div className="text-muted">
-              <span>
-                Recorded:{" "}
-                <span className="font-bold text-ink">{decision.action}</span>
-                {decision.value ? ` (${decision.value})` : ""}. Not yet written
-                to GBIF.
-              </span>
-              {decision.manual_instructions ? (
-                <details className="mt-2">
-                  <summary className="cursor-pointer font-bold text-ink">
-                    Create this rule manually
-                  </summary>
-                  <pre className="mt-2 whitespace-pre-wrap break-all rounded-md border border-hairline bg-panel p-2 font-mono text-xs text-ink">
-                    {decision.manual_instructions}
-                  </pre>
-                </details>
-              ) : null}
-            </div>
-          )
+              {decision.value ? ` (${decision.value})` : ""}.
+            </p>
+            {decision.action !== "reject" ? (
+              <div className="mt-1">
+                <WriteBackResult
+                  written={decision.written_to_gbif}
+                  annotationUrl={decision.annotation_url}
+                  manualInstructions={decision.manual_instructions}
+                />
+              </div>
+            ) : null}
+          </>
         ) : null}
       </div>
     </div>
