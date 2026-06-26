@@ -19,3 +19,54 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Guided tour: welcome card entrance, disabled under reduced motion. */
+@keyframes tg-welcome-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tg-welcome {
+  animation: tg-welcome-in 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-welcome {
+    animation: none;
+  }
+}
+
+/* Light-theme styling for the driver.js tour popover, matching the brand. */
+.driver-popover.tg-tour {
+  border-radius: 8px;
+}
+
+.driver-popover.tg-tour .driver-popover-title {
+  font-weight: 700;
+  color: #121212;
+}
+
+.driver-popover.tg-tour .driver-popover-description {
+  color: #475569;
+  line-height: 1.5;
+}
+
+.driver-popover.tg-tour .driver-popover-next-btn {
+  background-color: #0079b5;
+  color: #ffffff;
+  text-shadow: none;
+  border: none;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.driver-popover.tg-tour .driver-popover-prev-btn {
+  border-radius: 4px;
+  font-weight: 700;
+}

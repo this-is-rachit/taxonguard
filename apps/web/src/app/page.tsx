@@ -1,4 +1,5 @@
 import { SiteHeader } from "@/components/SiteHeader";
+import { WelcomeTour } from "@/components/tour/WelcomeTour";
 
 const EXAMPLES = ["Rana temporaria", "Vulpes lagopus", "Panthera leo"];
 
@@ -55,7 +56,12 @@ export default function Home() {
             GBIF.
           </p>
 
-          <form action="/explore" method="get" className="mt-8 max-w-2xl">
+          <form
+            action="/explore"
+            method="get"
+            className="mt-8 max-w-2xl"
+            data-tour="search"
+          >
             <div className="flex gap-2">
               <input
                 type="text"
@@ -73,7 +79,10 @@ export default function Home() {
             </div>
           </form>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div
+            className="mt-4 flex flex-wrap items-center gap-2"
+            data-tour="demos"
+          >
             <span className="text-xs text-muted">Try:</span>
             {EXAMPLES.map((name) => (
               <a
@@ -95,7 +104,7 @@ export default function Home() {
         </section>
 
         <section className="my-16">
-          <div className="rounded-lg bg-panel p-10">
+          <div className="rounded-lg bg-panel p-10" data-tour="how-it-works">
             <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
               How it works
             </h2>
@@ -122,7 +131,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mt-10">
+          <div className="mt-10" data-tour="how-to">
             <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
               How to use this site
             </h2>
@@ -149,6 +158,8 @@ export default function Home() {
           Challenge.
         </div>
       </footer>
+
+      <WelcomeTour />
     </div>
   );
 }

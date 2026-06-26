@@ -39,6 +39,13 @@ export function SiteHeader() {
               </li>
             ))}
           </ul>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- intentional full load so the landing tour effect re-runs and reads ?tour=1 */}
+          <a
+            href="/?tour=1"
+            className="hidden text-sm font-bold text-ink hover:text-primary md:inline-block"
+          >
+            Take a tour
+          </a>
           <a
             href={GITHUB_URL}
             className="hidden rounded-md border border-hairline px-5 py-2 text-sm font-bold text-ink hover:border-primary hover:text-primary md:inline-block"
@@ -102,6 +109,16 @@ export function SiteHeader() {
                 </Link>
               </li>
             ))}
+            <li>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- intentional full load so the landing tour effect re-runs and reads ?tour=1 */}
+              <a
+                href="/?tour=1"
+                onClick={() => setOpen(false)}
+                className="block py-2 text-sm font-bold text-ink hover:text-primary"
+              >
+                Take a tour
+              </a>
+            </li>
             <li>
               <a
                 href={GITHUB_URL}
