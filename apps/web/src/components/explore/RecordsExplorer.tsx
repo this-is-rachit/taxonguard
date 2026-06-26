@@ -48,7 +48,7 @@ function FacetRail({
 }) {
   const present = REASON_ORDER.filter((code) => (counts[code] ?? 0) > 0);
   return (
-    <aside className="w-full shrink-0 md:w-64">
+    <aside className="w-full">
       <div className="rounded-lg border border-hairline bg-white p-sm">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wide text-muted">
@@ -176,18 +176,23 @@ function SummaryView({ summary }: { summary: CleanSummary }) {
           </p>
           <ul className="mt-3 flex flex-col gap-2">
             {summary.issues.map((issue) => (
-              <li key={issue.label} className="flex items-center gap-3">
-                <span className="w-64 shrink-0 text-sm text-ink">
+              <li
+                key={issue.label}
+                className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
+              >
+                <span className="text-sm text-ink sm:w-64 sm:shrink-0">
                   {issue.label}
                 </span>
-                <span className="h-2 flex-1 overflow-hidden rounded-full bg-hairline">
-                  <span
-                    className="block h-full bg-secondary"
-                    style={{ width: `${(issue.count / max) * 100}%` }}
-                  />
-                </span>
-                <span className="w-10 shrink-0 text-right text-sm tabular-nums text-muted">
-                  {issue.count}
+                <span className="flex flex-1 items-center gap-3">
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-hairline">
+                    <span
+                      className="block h-full bg-secondary"
+                      style={{ width: `${(issue.count / max) * 100}%` }}
+                    />
+                  </span>
+                  <span className="w-10 shrink-0 text-right text-sm tabular-nums text-muted">
+                    {issue.count}
+                  </span>
                 </span>
               </li>
             ))}
@@ -215,7 +220,7 @@ function RecordTable({
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-hairline">
-      <table className="w-full text-left text-sm">
+      <table className="w-full min-w-[40rem] text-left text-sm">
         <thead className="border-b border-hairline text-xs uppercase tracking-wide text-muted">
           <tr>
             <th className="px-3 py-2 font-bold">ID</th>
@@ -341,6 +346,7 @@ export function RecordsExplorer({
   const [view, setView] = useState<View>("table");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [polygon, setPolygon] = useState<LngLat[] | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const annotate = useAnnotate();
 
   const keyed = useMemo(
@@ -411,145 +417,168 @@ export function RecordsExplorer({
     longitude: record.longitude,
   }));
 
-  return (
-    <div className="mt-6 flex flex-col gap-6 md:flex-row">
-      <FacetRail
-        counts={counts}
-        total={filtered.length}
-        activeReasons={activeReasons}
-        toggleReason={toggleReason}
-        minScore={minScore}
-        setMinScore={setMinScore}
-        onReset={() => {
-          setMinScore(0.5);
-          setActiveReasons(new Set());
-          setPolygon(null);
-        }}
-      />
+  const hasActiveFilters =
+    minScore !== 0.5 || activeReasons.size > 0 || polygon !== null;
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-muted">
-            {taxonLabel ? (
-              <span className="font-bold text-ink">{taxonLabel}</span>
-            ) : null}
-            {taxonLabel ? " — " : ""}
-            {filtered.length} shown
-            {truncated ? " (sample)" : ""}
-            {polygon ? (
-              <button
-                type="button"
-                onClick={() => setPolygon(null)}
-                className="ml-3 rounded-full bg-panel px-2 py-0.5 text-xs font-bold text-primary hover:underline"
-              >
-                Area filter on · clear
-              </button>
-            ) : null}
-          </p>
-          <div
-            role="tablist"
-            aria-label="View"
-            className="flex overflow-hidden rounded-md border border-hairline"
-          >
-            {(["table", "map", "summary"] as View[]).map((option) => (
-              <button
-                key={option}
-                role="tab"
-                aria-selected={view === option}
-                onClick={() => setView(option)}
-                className={`px-3 py-1.5 text-xs font-bold capitalize ${
-                  view === option
-                    ? "bg-secondary text-white"
-                    : "bg-white text-muted hover:text-ink"
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+  return (
+    <div className="mt-6">
+      <button
+        type="button"
+        aria-expanded={filtersOpen}
+        onClick={() => setFiltersOpen((value) => !value)}
+        className="mb-3 inline-flex items-center gap-2 rounded-md border border-hairline px-3 py-2 text-sm font-bold text-ink md:hidden"
+      >
+        {filtersOpen ? "Hide filters" : "Filters"}
+        {hasActiveFilters ? (
+          <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-white">
+            on
+          </span>
+        ) : null}
+      </button>
+
+      <div className="flex flex-col gap-6 md:flex-row">
+        <div
+          className={`${filtersOpen ? "block" : "hidden"} w-full shrink-0 md:block md:w-64`}
+        >
+          <FacetRail
+            counts={counts}
+            total={filtered.length}
+            activeReasons={activeReasons}
+            toggleReason={toggleReason}
+            minScore={minScore}
+            setMinScore={setMinScore}
+            onReset={() => {
+              setMinScore(0.5);
+              setActiveReasons(new Set());
+              setPolygon(null);
+            }}
+          />
         </div>
 
-        {annotateTaxon ? (
-          <div className="mt-3 rounded-lg border border-hairline bg-panel p-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-muted">
-              Write back to GBIF
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted">
+              {taxonLabel ? (
+                <span className="font-bold text-ink">{taxonLabel}</span>
+              ) : null}
+              {taxonLabel ? " — " : ""}
+              {filtered.length} shown
+              {truncated ? " (sample)" : ""}
+              {polygon ? (
+                <button
+                  type="button"
+                  onClick={() => setPolygon(null)}
+                  className="ml-3 rounded-full bg-panel px-2 py-0.5 text-xs font-bold text-primary hover:underline"
+                >
+                  Area filter on · clear
+                </button>
+              ) : null}
             </p>
-            <p className="mt-1 text-sm leading-6 text-muted">
-              Propose a rule marking the {filtered.length} record
-              {filtered.length === 1 ? "" : "s"} shown as{" "}
-              <span className="font-bold text-ink">suspicious</span>, over the
-              area they cover. With GBIF credentials this is published to
-              GBIF&apos;s annotation system; without them you get the exact rule
-              to create by hand.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Button
-                onClick={() =>
-                  annotate.mutate({
-                    taxon: annotateTaxon,
-                    points: annotatePoints,
-                  })
-                }
-                disabled={annotatePoints.length === 0 || annotate.isPending}
-              >
-                {annotate.isPending ? "Proposing..." : "Propose a GBIF rule"}
-              </Button>
-              {annotatePoints.length === 0 ? (
-                <span className="text-xs text-muted">
-                  Adjust the filters to include at least one record.
-                </span>
+            <div
+              role="tablist"
+              aria-label="View"
+              className="flex overflow-hidden rounded-md border border-hairline"
+            >
+              {(["table", "map", "summary"] as View[]).map((option) => (
+                <button
+                  key={option}
+                  role="tab"
+                  aria-selected={view === option}
+                  onClick={() => setView(option)}
+                  className={`px-3 py-2 text-xs font-bold capitalize ${
+                    view === option
+                      ? "bg-secondary text-white"
+                      : "bg-white text-muted hover:text-ink"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {annotateTaxon ? (
+            <div className="mt-3 rounded-lg border border-hairline bg-panel p-sm">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                Write back to GBIF
+              </p>
+              <p className="mt-1 text-sm leading-6 text-muted">
+                Propose a rule marking the {filtered.length} record
+                {filtered.length === 1 ? "" : "s"} shown as{" "}
+                <span className="font-bold text-ink">suspicious</span>, over the
+                area they cover. With GBIF credentials this is published to
+                GBIF&apos;s annotation system; without them you get the exact
+                rule to create by hand.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={() =>
+                    annotate.mutate({
+                      taxon: annotateTaxon,
+                      points: annotatePoints,
+                    })
+                  }
+                  disabled={annotatePoints.length === 0 || annotate.isPending}
+                >
+                  {annotate.isPending ? "Proposing..." : "Propose a GBIF rule"}
+                </Button>
+                {annotatePoints.length === 0 ? (
+                  <span className="text-xs text-muted">
+                    Adjust the filters to include at least one record.
+                  </span>
+                ) : null}
+              </div>
+              {annotate.isError ? (
+                <p className="mt-2 text-sm text-error">
+                  Could not propose the rule. Check that the API is running and
+                  try again.
+                </p>
+              ) : null}
+              {annotate.data ? (
+                <div className="mt-3">
+                  <WriteBackResult
+                    written={annotate.data.written_to_gbif}
+                    annotationUrl={annotate.data.annotation_url}
+                    manualInstructions={annotate.data.manual_instructions}
+                    detail={annotate.data.detail}
+                  />
+                </div>
               ) : null}
             </div>
-            {annotate.isError ? (
-              <p className="mt-2 text-sm text-error">
-                Could not propose the rule. Check that the API is running and
-                try again.
-              </p>
-            ) : null}
-            {annotate.data ? (
-              <div className="mt-3">
-                <WriteBackResult
-                  written={annotate.data.written_to_gbif}
-                  annotationUrl={annotate.data.annotation_url}
-                  manualInstructions={annotate.data.manual_instructions}
-                  detail={annotate.data.detail}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+          ) : null}
 
-        <div className="mt-3">
-          {view === "summary" ? (
-            <SummaryView summary={summary} />
-          ) : view === "map" ? (
-            <RecordsMap
-              points={points}
-              selectedKey={selectedKey}
-              onSelect={setSelectedKey}
-              polygon={polygon}
-              onPolygonChange={setPolygon}
-            />
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              title="Nothing matches these filters"
-              hint="Lower the minimum suspicion, clear the reason filters, or clear the drawn area."
-            />
-          ) : (
-            <RecordTable
-              records={filtered}
-              selectedKey={selectedKey}
-              onSelect={setSelectedKey}
-              showTaxon={showTaxon}
-            />
-          )}
+          <div className="mt-3">
+            {view === "summary" ? (
+              <SummaryView summary={summary} />
+            ) : view === "map" ? (
+              <RecordsMap
+                points={points}
+                selectedKey={selectedKey}
+                onSelect={setSelectedKey}
+                polygon={polygon}
+                onPolygonChange={setPolygon}
+              />
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                title="Nothing matches these filters"
+                hint="Lower the minimum suspicion, clear the reason filters, or clear the drawn area."
+              />
+            ) : (
+              <RecordTable
+                records={filtered}
+                selectedKey={selectedKey}
+                onSelect={setSelectedKey}
+                showTaxon={showTaxon}
+              />
+            )}
+          </div>
+
+          {selected && view !== "summary" ? (
+            <div className="mt-4">
+              <DetailPanel record={selected} />
+            </div>
+          ) : null}
         </div>
-
-        {selected && view !== "summary" ? (
-          <div className="mt-4">
-            <DetailPanel record={selected} />
-          </div>
-        ) : null}
       </div>
     </div>
   );
