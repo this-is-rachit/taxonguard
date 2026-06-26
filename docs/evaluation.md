@@ -180,7 +180,7 @@ records are reported as TaxonGuard's findings on real GBIF data rather than
 silently dropped or counted as false positives. This matters for the gridded rule
 in particular: a planted whole-degree error and a real whole-degree record are the
 same signal, so a clean benchmark must exclude the real ones from the plausible
-class. A small coastal buffer (about 5-15 km) is applied to the land/sea flag so
+class. A small coastal buffer (about 5 km) is applied to the land/sea flag so
 ordinary near-shore rounding is not over-reported as a finding, and the benchmark
 plants its ocean and institution errors as genuine out-of-range outliers.
 

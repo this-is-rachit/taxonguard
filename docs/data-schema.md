@@ -31,7 +31,7 @@ annual range, `bio_8` to `bio_11` temperature of wettest, driest, warmest, and
 coldest quarters, `bio_12` annual precipitation, `bio_13` to `bio_14`
 precipitation of wettest and driest month, `bio_15` precipitation seasonality,
 `bio_16` to `bio_19` precipitation of wettest, driest, warmest, and coldest
-quarters. Temperatures are in tenths of a degree Celsius.
+quarters. Temperatures are in degrees Celsius (WorldClim 2.1, sampled as stored).
 
 ## Metadata sidecar
 

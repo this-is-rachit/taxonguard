@@ -152,17 +152,26 @@ and degrades to a copy-and-paste manual fallback when no GBIF credentials are co
 
 Detection is measured on a labeled benchmark where every error is known, so the two numbers
 that matter can be counted directly: how many real errors are caught, and how many plausible
-records are falsely flagged. The honest test plants known errors into a **real GBIF download**
-and reports on a **held-out split** (the fusion weight is calibrated on one fold and every
-metric reported on the untouched fold).
+records are falsely flagged. There are two benchmarks.
 
-The demonstration set is *Rana temporaria* in Great Britain, **GBIF download DOI
-[10.15468/dl.bpfzpj](https://doi.org/10.15468/dl.bpfzpj)**. On the held-out real data the
-ROC-AUC is about 0.91, every deterministic error type reaches full recall, and climate is the
-honest exception: real climate niches are multi-modal, so the mildest climate outliers sit
-below the operating threshold by design rather than being hidden. The full method, the
-trade-offs, and the figure are in [`docs/evaluation.md`](docs/evaluation.md), reproducible with
-`uv run python -m taxonguard_core.eval.run --real`.
+A fast controlled benchmark plants the six error types into clean synthetic populations. The
+two classes separate completely on it, so as a sanity check the ranking is perfect (ROC-AUC
+1.0, full recall, no false positives). This is the benchmark that runs in CI. The figure shows
+it, with the suspicion score for each category and the operating threshold marked.
+
+![Evaluation: ROC curve and suspicion score by category](docs/evaluation.png)
+
+The meaningful number comes from the honest test: the same errors are planted into a **real
+GBIF download** (*Rana temporaria* in Great Britain, DOI
+[10.15468/dl.bpfzpj](https://doi.org/10.15468/dl.bpfzpj)) and reported on a **held-out split**
+the model was not tuned on. There the ROC-AUC is about 0.91, every deterministic error type
+reaches full recall, and climate is the honest exception: real climate niches are multi-modal,
+so the mildest climate outliers sit below the operating threshold by design rather than being
+hidden. The full method and both results are in [`docs/evaluation.md`](docs/evaluation.md).
+
+Reproduce the controlled benchmark with `uv run python -m taxonguard_core.eval.run`. The real,
+DOI-backed held-out benchmark is run on your machine after a GBIF download; the two commands
+are in [`docs/evaluation.md`](docs/evaluation.md).
 
 ---
 

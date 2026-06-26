@@ -66,5 +66,6 @@ The notebook's accuracy figures are measured on the labeled synthetic fallback.
 The honest, citable benchmark plants the same error types into a real GBIF
 download and reports on a held-out split (GBIF download DOI
 `10.15468/dl.bpfzpj`, *Rana temporaria*, Great Britain). See `docs/evaluation.md`
-and `docs/data-sources.md`, and reproduce it with
-`uv run python -m taxonguard_core.eval.run --real`.
+and `docs/data-sources.md`; the controlled benchmark is reproduced with
+`uv run python -m taxonguard_core.eval.run`, and the two commands for the real,
+held-out benchmark are in `docs/evaluation.md`.
