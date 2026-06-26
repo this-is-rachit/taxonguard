@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { ClusterActions } from "@/components/review/ClusterActions";
 import { ClusterListItem } from "@/components/review/ClusterListItem";
 import { Badge } from "@/components/ui/Badge";
+import { HelpTip } from "@/components/ui/HelpTip";
 import { SuspicionMeter } from "@/components/ui/SuspicionMeter";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { reasonLabel } from "@/lib/reasons";
@@ -180,6 +181,15 @@ export default function ReviewPage() {
 
         <div className="mt-md rounded-lg border border-hairline bg-white p-sm">
           <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                Filter clusters
+              </p>
+              <HelpTip
+                label="About the cluster filters"
+                text="Narrow the list by species name, by the reasons a cluster was flagged for, or by whether you have already decided on it. The map and the list both update."
+              />
+            </span>
             <input
               type="text"
               value={query}

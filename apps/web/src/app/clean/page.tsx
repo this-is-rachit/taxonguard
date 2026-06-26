@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 
 import { SiteHeader } from "@/components/SiteHeader";
@@ -130,7 +131,16 @@ export default function CleanPage() {
             engine on it. Every record is checked for coordinate-quality
             problems, and, where the data allows, for a land or sea realm
             mismatch and climate outliers. Suspect records are flagged with a
-            plain reason and a score. Nothing is deleted.
+            plain reason and a score, and nothing is deleted. This check stays
+            with you and is never published to GBIF; to write a correction back
+            to GBIF, use{" "}
+            <Link
+              href="/explore"
+              className="font-bold text-primary hover:underline"
+            >
+              Explore
+            </Link>
+            .
           </p>
         </section>
 

@@ -6,6 +6,7 @@ import { type MapPoint, RecordsMap } from "@/components/explore/RecordsMap";
 import { WriteBackResult } from "@/components/explore/WriteBackResult";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { HelpTip } from "@/components/ui/HelpTip";
 import { SuspicionMeter } from "@/components/ui/SuspicionMeter";
 import { EmptyState } from "@/components/ui/States";
 import { type CleanRecord, type CleanSummary } from "@/lib/api";
@@ -63,12 +64,18 @@ function FacetRail({
         </div>
 
         <div className="mt-4">
-          <label
-            htmlFor="score-threshold"
-            className="text-xs font-bold text-ink"
-          >
-            Minimum suspicion: {minScore.toFixed(2)}
-          </label>
+          <span className="inline-flex items-center gap-1">
+            <label
+              htmlFor="score-threshold"
+              className="text-xs font-bold text-ink"
+            >
+              Minimum suspicion: {minScore.toFixed(2)}
+            </label>
+            <HelpTip
+              label="About the suspicion score"
+              text="Each record is scored from 0 to 1, where higher means more likely to be an error. Only records at or above this value are shown."
+            />
+          </span>
           <input
             id="score-threshold"
             type="range"
@@ -85,7 +92,13 @@ function FacetRail({
         </div>
 
         <div className="mt-5">
-          <p className="text-xs font-bold text-ink">Reason</p>
+          <span className="inline-flex items-center gap-1">
+            <p className="text-xs font-bold text-ink">Reason</p>
+            <HelpTip
+              label="About the reason filters"
+              text="Each flag has one or more reasons, such as a land or sea mismatch or a climate outlier. Select reasons to show only the records that carry them."
+            />
+          </span>
           <ul className="mt-2 flex flex-col gap-1">
             {present.length === 0 ? (
               <li className="text-xs text-muted">

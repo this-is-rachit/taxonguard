@@ -9,6 +9,7 @@ const NAV = [
   { label: "Explore", href: "/explore" },
   { label: "Review", href: "/review" },
   { label: "Clean my data", href: "/clean" },
+  { label: "About", href: "/about" },
 ];
 
 const GITHUB_URL = "https://github.com/this-is-rachit/taxonguard";

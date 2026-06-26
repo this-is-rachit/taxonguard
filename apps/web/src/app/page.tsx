@@ -17,6 +17,24 @@ const STEPS = [
   },
 ];
 
+const HOW_TO = [
+  {
+    k: "Explore",
+    href: "/explore",
+    v: "Search any species. TaxonGuard fetches its records, flags the ones that do not fit, and lets you write a correction back to GBIF.",
+  },
+  {
+    k: "Review",
+    href: "/review",
+    v: "Work through groups of flagged records, confirm the ones that are errors, and track what has been written back to GBIF.",
+  },
+  {
+    k: "Clean my data",
+    href: "/clean",
+    v: "Upload a file of occurrence records and check it with the same engine. The result stays with you and is never published to GBIF.",
+  },
+];
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-white text-ink">
@@ -76,21 +94,52 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="my-16 rounded-lg bg-panel p-10">
-          <div className="grid gap-6 sm:grid-cols-3">
-            {STEPS.map((c) => (
-              <div key={c.k}>
-                <p className="text-sm font-bold text-ink">{c.k}</p>
-                <p className="mt-2 text-sm leading-6 text-muted">{c.v}</p>
-              </div>
-            ))}
+        <section className="my-16">
+          <div className="rounded-lg bg-panel p-10">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+              How it works
+            </h2>
+            <div className="mt-4 grid gap-6 sm:grid-cols-3">
+              {STEPS.map((c) => (
+                <div key={c.k}>
+                  <p className="text-sm font-bold text-ink">{c.k}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted">{c.v}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-8 text-sm leading-6 text-muted">
+              Because anyone can contribute to GBIF, it holds records that
+              cannot be right. The standard example is a frog recorded in the
+              open ocean. TaxonGuard finds these records, explains them, and
+              lets an expert send a fix back into GBIF.{" "}
+              <a
+                href="/about"
+                className="font-bold text-primary hover:underline"
+              >
+                Read more about how it works
+              </a>
+              .
+            </p>
           </div>
-          <p className="mt-8 text-sm text-muted">
-            Open the Explore screen to search a species and see its suspicious
-            records on a map, in a table, or as a summary. The review screen
-            adds the expert confirm step and writes a confirmed rule back to
-            GBIF.
-          </p>
+
+          <div className="mt-10">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
+              How to use this site
+            </h2>
+            <div className="mt-4 grid gap-6 sm:grid-cols-3">
+              {HOW_TO.map((c) => (
+                <a
+                  key={c.k}
+                  href={c.href}
+                  className="block rounded-lg border border-hairline p-6 hover:border-primary"
+                >
+                  <p className="text-sm font-bold text-ink">{c.k}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted">{c.v}</p>
+                  <p className="mt-3 text-sm font-bold text-primary">Open →</p>
+                </a>
+              ))}
+            </div>
+          </div>
         </section>
       </main>
 
