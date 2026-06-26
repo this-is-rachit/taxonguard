@@ -37,10 +37,12 @@ services:
     build:
       context: ..
       dockerfile: infra/web.Dockerfile
+      # NEXT_PUBLIC_API_BASE_URL is read by apps/web (src/lib/api.ts) and is inlined
+      # by Next.js at build time, so it is passed as a build arg, not a runtime env.
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:8000"
     depends_on:
       api:
         condition: service_healthy

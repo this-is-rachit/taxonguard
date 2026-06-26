@@ -13,6 +13,13 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY apps/web ./
 ENV NEXT_TELEMETRY_DISABLED=1
+# The web app's API base URL is a NEXT_PUBLIC_* value, so Next.js inlines it into
+# the client bundle at build time. It must therefore be present during the build,
+# not only at runtime. Provided as a build arg (default is the local API) and
+# promoted to an env var for the build step. Override via the web service's
+# build.args in infra/docker-compose.yml or `docker build --build-arg`.
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN npm run build
 
 FROM node:22-alpine AS runner
