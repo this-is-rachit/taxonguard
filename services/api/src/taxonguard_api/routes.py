@@ -13,9 +13,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
+from taxonguard_core.data.cache import build_taxon_dataset, cache_path
+
 from .annotate_service import AnnotationSubmitService
 from .clean_service import CleanNotFoundError, CleanService, UploadError
 from .models import (
+    AddTaxonRequest,
+    AddTaxonResponse,
     AnnotateRequest,
     AnnotateResponse,
     CleanReport,
@@ -27,6 +31,7 @@ from .models import (
     SpeciesSuggestion,
     TaxonSummary,
 )
+from .review_taxa import add_review_taxon
 from .score_service import SpeciesScoreError, TaxonScoreService
 from .service import (
     ClusterNotFoundError,
@@ -71,6 +76,46 @@ router = APIRouter()
 @router.get("/taxa", response_model=list[TaxonSummary])
 def list_taxa(service: ServiceDep) -> list[TaxonSummary]:
     return service.list_taxa()
+
+
+@router.post("/taxa", response_model=AddTaxonResponse, status_code=201)
+def add_taxon(request: AddTaxonRequest) -> AddTaxonResponse:
+    """Add a species to Review: fetch it from GBIF, enrich, cache, and cluster it.
+
+    The species is fetched and enriched with the same climate and land/sea data as
+    the curated set, cached on disk, and recorded in the review registry so it
+    survives a restart. The process-wide cluster service is then rebuilt so the new
+    species' clusters are available immediately. This needs the WorldClim and Natural
+    Earth data on the server, the same as the cache build.
+    """
+    name = request.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="A species name is required.")
+
+    try:
+        frame = build_taxon_dataset(name)
+    except Exception as error:  # noqa: BLE001 - surfaced as a clean API error
+        raise HTTPException(
+            status_code=502, detail=f"Could not fetch and prepare {name!r}: {error}"
+        ) from error
+    if frame.empty:
+        raise HTTPException(status_code=502, detail=f"GBIF returned no records for {name!r}.")
+
+    path = cache_path(name)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_parquet(path, index=False)
+    add_review_taxon(name, request.realm)
+
+    # Rebuild the process-wide service so the new species shows up right away.
+    get_service.cache_clear()
+    service = get_service()
+    summary = next((item for item in service.list_taxa() if item.taxon == name), None)
+    return AddTaxonResponse(
+        taxon=name,
+        realm=request.realm,
+        cluster_count=summary.cluster_count if summary else 0,
+        flagged_records=summary.flagged_records if summary else 0,
+    )
 
 
 @router.get("/clusters", response_model=list[ClusterSummary])

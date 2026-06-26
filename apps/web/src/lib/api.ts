@@ -131,6 +131,18 @@ export interface AnnotateResponse {
   detail?: string | null;
 }
 
+export interface AddTaxonRequest {
+  name: string;
+  realm: "terrestrial" | "freshwater" | "marine";
+}
+
+export interface AddTaxonResponse {
+  taxon: string;
+  realm: string;
+  cluster_count: number;
+  flagged_records: number;
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -223,6 +235,31 @@ export function postAnnotate(body: AnnotateRequest): Promise<AnnotateResponse> {
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+// Add a species to the Review set: the API fetches it from GBIF, enriches and
+// caches it, and rebuilds the cluster service so its clusters appear. The first
+// call runs the engine and can take a few seconds. A failure carries a plain
+// reason in the response detail (for example, no records were found).
+export async function postAddTaxon(
+  body: AddTaxonRequest,
+): Promise<AddTaxonResponse> {
+  const response = await fetch(`${API_BASE_URL}/taxa`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    let detail = `Request failed: ${response.status}`;
+    try {
+      const data = (await response.json()) as { detail?: string };
+      if (data?.detail) detail = data.detail;
+    } catch {
+      // Keep the default message if the error body is not JSON.
+    }
+    throw new ApiError(response.status, detail);
+  }
+  return (await response.json()) as AddTaxonResponse;
 }
 
 export { ApiError };

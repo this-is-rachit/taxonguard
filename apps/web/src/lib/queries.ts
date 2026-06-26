@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  type AddTaxonRequest,
+  type AddTaxonResponse,
   type AnnotateRequest,
   type AnnotateResponse,
   type CleanReport,
@@ -14,6 +16,7 @@ import {
   type SpeciesSuggestion,
   getCluster,
   getClusters,
+  postAddTaxon,
   postAnnotate,
   postCleanUpload,
   postDecision,
@@ -75,5 +78,15 @@ export function useSpeciesScore(taxon: string | null) {
 export function useAnnotate() {
   return useMutation<AnnotateResponse, Error, AnnotateRequest>({
     mutationFn: (body: AnnotateRequest) => postAnnotate(body),
+  });
+}
+
+export function useAddReviewTaxon() {
+  const queryClient = useQueryClient();
+  return useMutation<AddTaxonResponse, Error, AddTaxonRequest>({
+    mutationFn: (body: AddTaxonRequest) => postAddTaxon(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clusters"] });
+    },
   });
 }

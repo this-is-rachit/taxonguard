@@ -213,4 +213,34 @@ describe("Review page", () => {
       "https://api.gbif.org/v1/occurrence/experimental/annotation/rule/99",
     );
   });
+
+  it("paginates a long cluster list", async () => {
+    const many: ClusterSummary[] = Array.from({ length: 25 }, (_, i) => ({
+      ...SUMMARY,
+      cluster_id: `c-${i + 1}`,
+      taxon: `Species ${i + 1}`,
+    }));
+    vi.mocked(getClusters).mockResolvedValue(many);
+    renderPage();
+
+    // The first page shows the first 20 of 25, not the 21st.
+    expect(
+      await screen.findByRole("button", { name: "Select Species 1 cluster" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Select Species 20 cluster" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Select Species 21 cluster" }),
+    ).not.toBeInTheDocument();
+
+    // Next reveals the remainder and drops the first page.
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(
+      screen.getByRole("button", { name: "Select Species 21 cluster" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Select Species 1 cluster" }),
+    ).not.toBeInTheDocument();
+  });
 });

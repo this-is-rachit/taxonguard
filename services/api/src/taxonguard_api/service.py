@@ -201,10 +201,11 @@ def build_default_service() -> ClusterService:
     from taxonguard_core.taxa import DEFAULT_TAXA
 
     from .config import settings
+    from .review_taxa import load_added_taxa
 
     frames: dict[str, pd.DataFrame] = {}
     realms: dict[str, str] = {}
-    for taxon in DEFAULT_TAXA:
+    for taxon in (*DEFAULT_TAXA, *load_added_taxa()):
         try:
             cached = load_cached(taxon.name)
             if cached is None or cached.empty:

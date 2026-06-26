@@ -18,6 +18,20 @@ class TaxonSummary(BaseModel):
     flagged_records: int
 
 
+class AddTaxonRequest(BaseModel):
+    name: str = Field(description="Scientific name of the species to add to Review.")
+    realm: Literal["terrestrial", "freshwater", "marine"] = Field(
+        description="Habitat realm, used by the land or sea check."
+    )
+
+
+class AddTaxonResponse(BaseModel):
+    taxon: str
+    realm: str
+    cluster_count: int = Field(description="Number of flagged-record clusters formed.")
+    flagged_records: int = Field(description="Number of records flagged as suspicious.")
+
+
 class RuleOut(BaseModel):
     taxon: str
     geometry: str = Field(description="The rule polygon as WKT.")

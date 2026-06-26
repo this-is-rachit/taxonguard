@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import { type MapPoint, RecordsMap } from "@/components/explore/RecordsMap";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { AddSpeciesForm } from "@/components/review/AddSpeciesForm";
 import { ClusterActions } from "@/components/review/ClusterActions";
 import { ClusterListItem } from "@/components/review/ClusterListItem";
 import { Badge } from "@/components/ui/Badge";
@@ -25,6 +26,9 @@ const REASON_ORDER = [
 ];
 
 type ReviewStatus = "all" | "undecided" | "confirm" | "reject" | "refine";
+
+// Show the cluster list in pages so a long list does not push the page down.
+const PAGE_SIZE = 20;
 
 function ClusterDetailPanel({ clusterId }: { clusterId: string }) {
   const { data, isLoading, isError, refetch } = useCluster(clusterId);
@@ -98,8 +102,20 @@ export default function ReviewPage() {
   const [query, setQuery] = useState("");
   const [activeReasons, setActiveReasons] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<ReviewStatus>("all");
+  const [page, setPage] = useState(1);
   const { data: clusters, isLoading, isError, refetch } = useClusters();
   const handleSelect = useCallback((id: string) => setSelectedId(id), []);
+
+  // Return to the first page whenever the filters change, so the visible page
+  // always reflects the current filter rather than a stale page number. This is
+  // done during render (the React pattern for adjusting state on a changed input)
+  // rather than in an effect, to avoid an extra render pass.
+  const filterKey = `${query}|${[...activeReasons].sort().join(",")}|${status}`;
+  const [seenFilterKey, setSeenFilterKey] = useState(filterKey);
+  if (filterKey !== seenFilterKey) {
+    setSeenFilterKey(filterKey);
+    setPage(1);
+  }
 
   const all = useMemo(() => clusters ?? [], [clusters]);
 
@@ -134,6 +150,13 @@ export default function ReviewPage() {
       return true;
     });
   }, [all, query, activeReasons, status]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   const points: MapPoint[] = useMemo(
     () =>
@@ -179,6 +202,8 @@ export default function ReviewPage() {
           </Link>
           .
         </p>
+
+        <AddSpeciesForm />
 
         <div className="mt-md rounded-lg border border-hairline bg-white p-sm">
           <div className="flex flex-wrap items-center gap-3">
@@ -287,7 +312,7 @@ export default function ReviewPage() {
                 hint="Clear the species filter, the reason filters, or the decision status."
               />
             ) : null}
-            {filtered.map((cluster) => (
+            {paged.map((cluster) => (
               <ClusterListItem
                 key={cluster.cluster_id}
                 cluster={cluster}
@@ -295,6 +320,39 @@ export default function ReviewPage() {
                 onSelect={() => handleSelect(cluster.cluster_id)}
               />
             ))}
+
+            {filtered.length > PAGE_SIZE ? (
+              <div className="mt-1 flex items-center justify-between gap-3 border-t border-hairline pt-3">
+                <span className="text-xs text-muted">
+                  Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+                  {Math.min(currentPage * PAGE_SIZE, filtered.length)} of{" "}
+                  {filtered.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage <= 1}
+                    className="rounded-md border border-hairline px-2.5 py-1 text-xs font-bold text-ink hover:border-primary disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-muted">
+                    Page {currentPage} of {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPage(Math.min(pageCount, currentPage + 1))
+                    }
+                    disabled={currentPage >= pageCount}
+                    className="rounded-md border border-hairline px-2.5 py-1 text-xs font-bold text-ink hover:border-primary disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section
